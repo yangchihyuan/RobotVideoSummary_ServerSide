@@ -18,7 +18,6 @@ endif()
 
 include(FindProtobuf)
 find_package(Boost COMPONENTS system REQUIRED)
-find_package(TensorflowCC REQUIRED COMPONENTS Shared)
 
 protobuf_generate_cpp(PROTO_SRC PROTO_HDR ${PROTO_FILE})
 get_filename_component(PROTO_HDR_DIRECTORY ${PROTO_HDR} DIRECTORY)
@@ -37,8 +36,7 @@ set(SOURCES include/human_pose.hpp
             src/render_human_pose.cpp
             8_openvino.cpp
             SocketToServer.cpp
-            ProcessImage_tensorflow.cpp
-            filter.cpp
+            ProcessImage.cpp
             ${PROTO_SRC})
 
 add_executable(${TARGET_NAME} ${SOURCES})
@@ -49,7 +47,7 @@ set_target_properties(${TARGET_NAME} PROPERTIES "CMAKE_CXX_FLAGS" "${CMAKE_CXX_F
   COMPILE_PDB_NAME ${TARGET_NAME})
 
 target_include_directories(${TARGET_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
-target_link_libraries(${TARGET_NAME} ${InferenceEngine_LIBRARIES} ${OpenCV_LIBS} gflags ${PROTOBUF_LIBRARIES} ${Boost_SYSTEM_LIBRARY} IE::ie_cpu_extension libopencv_tracking.so libopencv_dnn.so TensorflowCC::Static)
+target_link_libraries(${TARGET_NAME} ${InferenceEngine_LIBRARIES} ${OpenCV_LIBS} gflags ${PROTOBUF_LIBRARIES} ${Boost_SYSTEM_LIBRARY} IE::ie_cpu_extension libopencv_tracking.so libopencv_dnn.so)
 
 if(UNIX)
   target_link_libraries(${TARGET_NAME} ${LIB_DL} pthread)

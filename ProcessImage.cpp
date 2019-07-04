@@ -8,6 +8,7 @@
 #include "ProcessImage.hpp"
 
 // Header files required by Tensorflow
+/*
 #include <cmath>
 #include <chrono>
 #include "tensorflow/core/platform/init_main.h"
@@ -20,12 +21,12 @@
 #include "tensorflow/core/graph/graph_def_builder.h"
 #include "tensorflow/core/lib/io/path.h"
 #include <tensorflow/core/protobuf/meta_graph.pb.h>
-
+*/
 using namespace human_pose_estimation;
 //using namespace InferenceEngine;        //for yolov3 InferencePlugin
 using namespace cv;
 using namespace std;
-using namespace tensorflow;
+//using namespace tensorflow;
 
 DECLARE_bool(Verbose);
 
@@ -83,14 +84,14 @@ void process_image(std::string pose_model, std::string detect_model, std::string
     HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
     // declares all required variables
     
-    Rect2d roi;
     // create a tracker object
     //Ptr<Tracker> tracker = TrackerMOSSE::create();
     //Ptr<Tracker> tracker = TrackerTLD::create();
+/*    Rect2d roi;
     std::string str_timestamp_initialize_tracker;
     bool b_tracker_initialized = false;
     Ptr<Tracker> tracker;
-
+*/
 
 /*
     bool b_run_reid = false;
@@ -204,6 +205,7 @@ void process_image(std::string pose_model, std::string detect_model, std::string
                 //std::thread thread_charades_squeezenet(action_recognition_charades_webcam,inputImage, &body_coord);
                 std::vector<HumanPose> poses = estimator.estimate(inputImage);
 
+/*
                 if( poses.size() == 1)
                 {
                     //set the tracking region as the face
@@ -286,7 +288,7 @@ void process_image(std::string pose_model, std::string detect_model, std::string
                         }
                     }                    
                 }
-
+*/
 
                 //Convert openpose results to our own format
                 report_data.set_openpose_cnt(poses.size());

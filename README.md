@@ -25,3 +25,4 @@ chmod u+x RobotVideoSummary_ServerSide/run_server_side_program.sh
 ```
 ./RobotVideoSummary_ServerSide/run_server_side_program.sh
 ```
+- To terminate this program, press Ctrl+C

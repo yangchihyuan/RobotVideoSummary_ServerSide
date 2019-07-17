@@ -9,6 +9,7 @@
 #include <opencv2/highgui.hpp>
 #include <gflags/gflags.h>
 using namespace InferenceEngine;
+using namespace std;
 
 void process_image(std::string pose_model, std::string detect_model, std::string extension, double threshold_t, 
                     double threshold_iou_t, bool bShowRenderedImage, bool bSaveTransmittedImage, std::string save_to_directory, double midPointsScoreThreshold);

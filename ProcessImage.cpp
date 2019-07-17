@@ -6,6 +6,9 @@
 #include "render_human_pose.hpp"
 
 #include "ProcessImage.hpp"
+#include <vector>
+#include <numeric>      // std::iota
+#include <algorithm>    // std::sort
 
 // Header files required by Tensorflow
 /*
@@ -25,7 +28,6 @@
 using namespace human_pose_estimation;
 //using namespace InferenceEngine;        //for yolov3 InferencePlugin
 using namespace cv;
-using namespace std;
 //using namespace tensorflow;
 
 DECLARE_bool(Verbose);
@@ -78,6 +80,10 @@ void process_save_frame_buffer_as_JPEG_images(bool bSaveTransmittedImage, std::s
     }
 }
 
+typedef std::pair<float,int> mypair;
+bool comparator ( const mypair& l, const mypair& r)
+   { return l.first < r.first; }
+
 void process_image(std::string pose_model, std::string detect_model, std::string extension, double threshold_t, 
     double threshold_iou_t, bool bShowRenderedImage, bool bSaveTransmittedImage, std::string save_to_directory, double midPointsScoreThreshold)
 {
@@ -87,7 +93,9 @@ void process_image(std::string pose_model, std::string detect_model, std::string
     // create a tracker object
     //Ptr<Tracker> tracker = TrackerMOSSE::create();
     //Ptr<Tracker> tracker = TrackerTLD::create();
-/*    Rect2d roi;
+
+/*
+    Rect2d roi;
     std::string str_timestamp_initialize_tracker;
     bool b_tracker_initialized = false;
     Ptr<Tracker> tracker;
@@ -235,7 +243,7 @@ void process_image(std::string pose_model, std::string detect_model, std::string
                         if( bTwoEarsSufficientlyApart == true && roi.y >= 0)
                         {
                             tracker.reset();
-                            tracker = TrackerTLD::create();
+                            tracker = TrackerGOTURN::create();
                             tracker->init(inputImage, roi);
                             rectangle(displayImage, roi, Scalar( 0, 255, 0 ), 2, 1 );     //green
                             str_timestamp_initialize_tracker = str_timestamp;
@@ -290,10 +298,55 @@ void process_image(std::string pose_model, std::string detect_model, std::string
                 }
 */
 
+                //Sort OpenVINO's openpose results by the distance between neck to nose, eyes, and ears
+                //compute the distnaces
+                vector<float> distances(poses.size(),0);
+                for( int idx = 0; idx < poses.size(); idx++ )
+                {
+                    HumanPose pose = poses.at(idx);
+                    auto keypoint_center = pose.keypoints[1];
+
+                    if(keypoint_center.x != -1 && keypoint_center.y != -1)
+                    {
+                        int facial_component_array[5] = {0, 14, 15, 16, 17};
+                        float sum = 0;
+                        int count = 0;
+                        for(int facial_component_index : facial_component_array)
+                        {
+                            auto keypoint_component = pose.keypoints[facial_component_index];
+                            if(keypoint_component.x != -1 && keypoint_component.y != -1)
+                            {
+                                count += 1;
+                                float diff_x = keypoint_center.x - keypoint_component.x;
+                                float diff_y = keypoint_center.y - keypoint_component.y;
+                                float distance = sqrt(pow(diff_x, 2) + pow(diff_y, 2));
+                                sum += distance;
+                            }
+                        }
+
+                        if( count != 0)
+                        {
+                            distances[idx] = sum/count;
+                        }
+                    }
+                }
+
+                //get sorted indexes, the larger distance, the smaller the index
+                vector<int> index_vector(distances.size(), 0);
+                for (int i = 0 ; i != index_vector.size() ; i++) {
+                    index_vector[i] = i;
+                }
+                sort(index_vector.begin(), index_vector.end(),
+                    [&](const int& a, const int& b) {
+                        return (distances[a] > distances[b]);
+                    }
+                );
+
                 //Convert openpose results to our own format
                 report_data.set_openpose_cnt(poses.size());
-                for( HumanPose pose: poses)
+                for( int idx = 0; idx < poses.size(); idx++ )
                 {
+                    HumanPose pose = poses[index_vector[idx]];     //report sorted poses
                     std::string temp;
                     for( auto keypoint : pose.keypoints)
                     {

@@ -9,3 +9,8 @@ frozen_darknet_yolov3_model.mapping
 frozen_darknet_yolov3_model.xml
 object_detection_demo_yolov3_async.hpp
 yolov3.cpp
+
+.vscode
+
+goturn.caffemodel
+goturn.prototxt

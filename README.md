@@ -3,9 +3,11 @@ This project is modified from the sample project human_pose_estimation_demo of I
 # Environment Setting
 - Ubuntu 16.04
 - Intel OpenVINO toolkit 2018.5.455
-- boost library 1.58
-- protobuf 3.5.1
-- OpenCV 4.0.0
+- libboost-dev 1.58
+- libboost-system-dev 1.58
+- libprotobuf-dev 2.6.1
+- protobuf-compiler 2.6.1
+- OpenCV 4.0.1
 
 # Installation
 - clone this repository to OpenVINO's sample directory, e.g. /opt/intel/computer_vision_sdk/inference_engine/samples

@@ -10,7 +10,7 @@ This project is modified from the sample project human_pose_estimation_demo of I
 - OpenCV 4.0.1
 
 # Installation
-- clone this repository to OpenVINO's sample directory, e.g. /opt/intel/computer_vision_sdk/inference_engine/samples
+- clone this repository to OpenVINO's sample directory. If you install OpenVINO using sudo, the default directory is /opt/intel/computer_vision_sdk/inference_engine/samples. Otherwise the default directory is ~/intel/computer_vision_sdk/inference_engine/samples.
 ```
 cd /opt/intel/computer_vision_sdk/inference_engine/samples
 git clone https://github.com/yangchihyuan/RobotVideoSummary_ServerSide.git

@@ -1,4 +1,4 @@
-// Copyright (C) 2018 Intel Corporation
+// Copyright (C) 2018-2019 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 //
 
@@ -20,7 +20,7 @@ public:
     HumanPoseEstimator(const std::string& modelPath,
                        const std::string& targetDeviceName,
                        bool enablePerformanceReport = false,
-                       float midPointsScoreThreshold_input = 0.5f);
+                       const float midPointsScoreThreshold = 0.5f);
     std::vector<HumanPose> estimate(const cv::Mat& image);
     ~HumanPoseEstimator();
 
@@ -49,7 +49,8 @@ private:
     float minSubsetScore;
     cv::Size inputLayerSize;
     int upsampleRatio;
-    InferenceEngine::InferencePlugin plugin;
+    InferenceEngine::Core ie;
+    std::string targetDeviceName;
     InferenceEngine::CNNNetwork network;
     InferenceEngine::ExecutableNetwork executableNetwork;
     InferenceEngine::InferRequest request;

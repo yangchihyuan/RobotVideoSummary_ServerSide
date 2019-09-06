@@ -2,26 +2,25 @@ This project is modified from the sample project human_pose_estimation_demo of I
 
 # Environment Setting
 - Ubuntu 16.04
-- Intel OpenVINO toolkit 2018.5.455
+- Intel OpenVINO toolkit 2019 R2
 - libboost-dev 1.58
 - libboost-system-dev 1.58
 - libprotobuf-dev 2.6.1
 - protobuf-compiler 2.6.1
-- OpenCV 4.0.1
 
 # Installation
-- clone this repository to OpenVINO's sample directory. If you install OpenVINO using sudo, the default directory is /opt/intel/computer_vision_sdk/inference_engine/samples. Otherwise, the default directory is ~/intel/computer_vision_sdk/inference_engine/samples.
+- clone this repository to OpenVINO's sample directory. For example, mine is ~/intel/openvino/deployment_tools/open_model_zoo/demos because I did not use sudo to install OpenVINO. If you use sudo, the directory is likely to be /opt/intel/openvino/deployment_tools/open_model_zoo/demos. 
 ```
 cd /opt/intel/computer_vision_sdk/inference_engine/samples
 git clone https://github.com/yangchihyuan/RobotVideoSummary_ServerSide.git
 ```
-- run the OpenVINO's build_samples.sh to build this project, and an executable file 8_openvino is supposed to be built at ~/inference_engine_samples_build/intel64/Release
+- run the OpenVINO's build_demos.sh at ~/intel/openvino/deployment_tools/open_model_zoo/demos to build this project, and an executable file 8_openvino is supposed to be built at ~/omz_demos_build/intel64/Release/
 ```
 ./build_samples.sh
 ```
 - set the permissions as executable for the run_server_side_program.sh in the RobotVideoSummary_ServerSide directory
 ```
-chmod u+x RobotVideoSummary_ServerSide/run_server_side_program.sh
+chmod +x RobotVideoSummary_ServerSide/run_server_side_program.sh
 ```
 - run the shell script
 ```

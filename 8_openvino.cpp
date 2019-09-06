@@ -25,21 +25,7 @@ bool ParseAndCheckCommandLine(int argc, char* argv[]) {
     // ---------------------------Parsing and validation of input args--------------------------------------
 
     gflags::ParseCommandLineNonHelpFlags(&argc, &argv, true);
-    if (FLAGS_h) {
-        showUsage();
-        return false;
-    }
-
     std::cout << "[ INFO ] Parsing input parameters" << std::endl;
-
-    if (FLAGS_i.empty()) {
-        throw std::logic_error("Parameter -i is not set");
-    }
-
-    if (FLAGS_pose_model.empty()) {
-        throw std::logic_error("Parameter -pose_model is not set");
-    }
-
     return true;
 }
 
@@ -58,8 +44,11 @@ int main(int argc, char* argv[]) {
 
         std::thread thread_receive_frame(receive_socket, FLAGS_port_number);
         std::thread thread_report_results(report_results, FLAGS_port_number+1);     //another thread to send back results.
-        std::thread thread_image_process(process_image, FLAGS_pose_model, FLAGS_detect_model, FLAGS_l, 
-            FLAGS_yolo_threshold_t, FLAGS_yolo_threshold_iou_t, FLAGS_ShowRenderedImage, FLAGS_SaveTransmittedImage, FLAGS_save_to_directory,
+        std::thread thread_image_process(process_image, 
+            FLAGS_pose_model, 
+            FLAGS_ShowRenderedImage, 
+            FLAGS_SaveTransmittedImage, 
+            FLAGS_save_to_directory,
             (float)FLAGS_midPointsScoreThreshold
         );
         if(FLAGS_SaveTransmittedImage){

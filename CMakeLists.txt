@@ -1,54 +1,57 @@
-# Copyright (C) 2018 Intel Corporation
-# SPDX-License-Identifier: Apache-2.0
-#
-
-set(TARGET_NAME "8_openvino")
+find_package(TensorflowCC REQUIRED)
+find_package(Protobuf REQUIRED)
+find_package(Boost COMPONENTS system REQUIRED)
+find_package(CUDA)
+find_package(OpenCV COMPONENTS highgui REQUIRED)
 
 set(PROTO_FILE AnalyzedResults.proto)
-
-#enable debug information
-#set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")   
-
-# Find OpenCV components if exist
-find_package(OpenCV COMPONENTS highgui QUIET)
-if(NOT(OpenCV_FOUND))
-    message(WARNING "OPENCV is disabled or not found, " ${TARGET_NAME} " skipped")
-    return()
-endif()
-
-include(FindProtobuf)
-find_package(Boost COMPONENTS system REQUIRED)
-
 protobuf_generate_cpp(PROTO_SRC PROTO_HDR ${PROTO_FILE})
-get_filename_component(PROTO_HDR_DIRECTORY ${PROTO_HDR} DIRECTORY)
-include_directories(${PROTO_HDR_DIRECTORY})
-include_directories(OpenCV_INCLUDE_DIR)
 
-set(SOURCES include/human_pose.hpp
-            include/8_openvino.hpp
-            include/human_pose_estimator.hpp
-            include/peak.hpp
-            include/render_human_pose.hpp
-            include/SocketToServer.hpp
-            src/human_pose.cpp
+message(STATUS "PROTO_HDR ${PROTO_HDR}")
+
+set(SOURCES src/human_pose.cpp
             src/human_pose_estimator.cpp
             src/peak.cpp
             src/render_human_pose.cpp
             8_openvino.cpp
             SocketToServer.cpp
             ProcessImage.cpp
+            Pose.cpp
+            Tensor.cpp
+            JPEG.cpp
             ${PROTO_SRC})
 
-add_executable(${TARGET_NAME} ${SOURCES})
+file (GLOB_RECURSE HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+
+ie_add_sample(NAME 8_openvino
+              SOURCES ${SOURCES}
+              HEADERS ${HEADERS}
+              INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/include"
+              OPENCV_DEPENDENCIES highgui)
+
+
+
+#enable debug information
+#set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")   
+
+include_directories(${PROTOBUF_INCLUDE_DIRS})
+get_filename_component(PROTO_HDR_DIRECTORY ${PROTO_HDR} DIRECTORY)
+include_directories(${PROTO_HDR_DIRECTORY})
+#include_directories(OpenCV_INCLUDE_DIR)
 
 link_directories(${LIB_FOLDER} /usr/local/lib)
 
-set_target_properties(${TARGET_NAME} PROPERTIES "CMAKE_CXX_FLAGS" "${CMAKE_CXX_FLAGS} -fPIE"
-  COMPILE_PDB_NAME ${TARGET_NAME})
+#set_target_properties(${TARGET_NAME} PROPERTIES "CMAKE_CXX_FLAGS" "${CMAKE_CXX_FLAGS} -fPIE"
+#  COMPILE_PDB_NAME ${TARGET_NAME})
 
-target_include_directories(${TARGET_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
-target_link_libraries(${TARGET_NAME} ${InferenceEngine_LIBRARIES} ${OpenCV_LIBS} gflags ${PROTOBUF_LIBRARIES} ${Boost_SYSTEM_LIBRARY} IE::ie_cpu_extension libopencv_tracking.so libopencv_dnn.so)
+#target_include_directories(${TARGET_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
+
+target_link_libraries(${IE_SAMPLE_NAME} gflags cnpy TensorflowCC::Shared ${PROTOBUF_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
+
+if(CUDA_FOUND)
+  target_link_libraries(${IE_SAMPLE_NAME} ${CUDA_LIBRARIES})
+endif()
 
 if(UNIX)
-  target_link_libraries(${TARGET_NAME} ${LIB_DL} pthread)
+  target_link_libraries(${IE_SAMPLE_NAME} ${LIB_DL} pthread)
 endif()

@@ -288,7 +288,7 @@ class session_report_result
     void do_write()
     {
         auto self(shared_from_this());
-        int str_result_length = strlen(str_results);
+//        int str_result_length = strlen(str_results);
         gMutex_send_results.lock();
         strcat(str_results, "EndToken\r\n");
         if(bVerbose)

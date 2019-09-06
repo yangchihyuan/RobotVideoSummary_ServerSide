@@ -9,6 +9,8 @@
 #include <vector>
 #include <numeric>      // std::iota
 #include <algorithm>    // std::sort
+#include "JPEG.hpp"
+#include "Pose.hpp"
 
 // Header files required by Tensorflow
 /*
@@ -45,17 +47,6 @@ extern char str_results[122880];
 
 std::string save_to_directory;
 
-
-
-//save JPEG data into a file
-void save_image_JPEG(char* data_, std::size_t length, std::string filename)
-{
-    std::ofstream outfile (filename.c_str(),std::ofstream::binary);
-    outfile.write(data_, length);
-    outfile.close();
-}
-
-
 //Something wrong here. I did not check the content. I may save corrupt images.
 void process_save_frame_buffer_as_JPEG_images(bool bSaveTransmittedImage, std::string save_to_directory)
 {
@@ -65,9 +56,9 @@ void process_save_frame_buffer_as_JPEG_images(bool bSaveTransmittedImage, std::s
         if( status_frame_buffer2 == 1)
         {
             char *data_ = frame_buffer2;
-            int length = frame_buffer2_length;
+//            int length = frame_buffer2_length;
             std::string key_info(data_);
-            int key_length = key_info.length();
+//            int key_length = key_info.length();
             std::string str_JPEG_length(data_+ key_info.length() + 1);
             int JPEG_length = frame_buffer2_length - (key_info.length() + str_JPEG_length.length() + 2 );
             save_image_JPEG( data_ + key_info.length() + str_JPEG_length.length() + 2, JPEG_length , save_to_directory + "/" + key_info.substr(0,13) + ".jpg");
@@ -84,83 +75,13 @@ typedef std::pair<float,int> mypair;
 bool comparator ( const mypair& l, const mypair& r)
    { return l.first < r.first; }
 
-void process_image(std::string pose_model, std::string detect_model, std::string extension, double threshold_t, 
-    double threshold_iou_t, bool bShowRenderedImage, bool bSaveTransmittedImage, std::string save_to_directory, double midPointsScoreThreshold)
+void process_image(std::string pose_model, 
+    bool bShowRenderedImage, 
+    bool bSaveTransmittedImage, 
+    std::string save_to_directory, 
+    double midPointsScoreThreshold)
 {
     HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
-    // declares all required variables
-    
-    // create a tracker object
-    //Ptr<Tracker> tracker = TrackerMOSSE::create();
-    //Ptr<Tracker> tracker = TrackerTLD::create();
-
-/*
-    Rect2d roi;
-    std::string str_timestamp_initialize_tracker;
-    bool b_tracker_initialized = false;
-    Ptr<Tracker> tracker;
-*/
-
-/*
-    bool b_run_reid = false;
-    if( b_run_reid )
-    {
-        std::unique_ptr<tensorflow::Session> tf_session;
-
-        //load the tensorflow model
-        const string pathToGraph = "/4t/yangchihyuan/PSE_tfModels/model.ckpt-104801.meta";
-        const string checkpointPath = "/4t/yangchihyuan/PSE_tfModels";    
-
-        auto session = NewSession(SessionOptions());
-        if (session == nullptr) {
-            std::cout << "Could not create Tensorflow session." << std::endl;
-            throw runtime_error("Could not create Tensorflow session.");
-        }
-        else
-        {
-            std::cout << "NewSession ok." << std::endl;
-        }
-        
-        Status status;
-
-        // Read in the protobuf graph we exported
-        MetaGraphDef meta_graph_def;
-        status = ReadBinaryProto(Env::Default(), pathToGraph, &meta_graph_def);
-        if (!status.ok()) {
-            std::cout << "Error reading graph definition from" << std::endl;
-            throw runtime_error("Error reading graph definition from " + pathToGraph + ": " + status.ToString());
-        }
-        else
-        {
-            std::cout << "ReadBinaryProto ok." << std::endl;
-        }
-
-        // Add the graph to the session
-        //status = session->Create(meta_graph_def.graph_def());
-        status = session->Create(meta_graph_def.graph_def());
-        if (!status.ok()) {
-            throw runtime_error("Error creating graph: " + status.ToString());
-        }
-        else
-        {
-            std::cout << "Create session ok." << std::endl;
-        }
-        
-        // Load weight
-        Tensor checkpointPathTensor(DT_STRING, TensorShape());
-        checkpointPathTensor.scalar<std::string>()() = checkpointPath;
-        status = session->Run(
-                {{ meta_graph_def.saver_def().filename_tensor_name(), checkpointPathTensor },},
-                {},
-                {meta_graph_def.saver_def().restore_op_name()},
-                nullptr);
-        if (!status.ok()) {
-            std::cout << status.ToString() << std::endl;
-        } else {
-            std::cout << "Load Model "<<checkpointPath<<" successfully" << std::endl;
-        }    
-    }
-*/
 
     while(true)
     {
@@ -204,14 +125,14 @@ void process_image(std::string pose_model, std::string detect_model, std::string
                     save_image_JPEG(data_ + key_info.length() + str_JPEG_length.length() + 2, JPEG_length , filename);
                 }
 
-                const size_t width  = (size_t) inputImage.cols;
-                const size_t height = (size_t) inputImage.rows;
+//                const size_t width  = (size_t) inputImage.cols;
+//                const size_t height = (size_t) inputImage.rows;
 
                 cv::Mat displayImage = inputImage.clone();
 
                 //std::thread thread_yolo(yolo_detect, inputImage, &body_coord);
                 //std::thread thread_charades_squeezenet(action_recognition_charades_webcam,inputImage, &body_coord);
-                std::vector<HumanPose> poses = estimator.estimate(inputImage);
+                std::vector<HumanPose> poses = estimator.estimate(inputImage );
 
 /*
                 if( poses.size() == 1)
@@ -298,53 +219,17 @@ void process_image(std::string pose_model, std::string detect_model, std::string
                 }
 */
 
+                //Crop regions from openposes results
+                vector<MatPosePair> pairs = CropRegionsFromPoses(inputImage, poses);
+                
+
                 //Sort OpenVINO's openpose results by the distance between neck to nose, eyes, and ears
                 //compute the distnaces
-                vector<float> distances(poses.size(),0);
-                for( int idx = 0; idx < poses.size(); idx++ )
-                {
-                    HumanPose pose = poses.at(idx);
-                    auto keypoint_center = pose.keypoints[1];
-
-                    if(keypoint_center.x != -1 && keypoint_center.y != -1)
-                    {
-                        int facial_component_array[5] = {0, 14, 15, 16, 17};
-                        float sum = 0;
-                        int count = 0;
-                        for(int facial_component_index : facial_component_array)
-                        {
-                            auto keypoint_component = pose.keypoints[facial_component_index];
-                            if(keypoint_component.x != -1 && keypoint_component.y != -1)
-                            {
-                                count += 1;
-                                float diff_x = keypoint_center.x - keypoint_component.x;
-                                float diff_y = keypoint_center.y - keypoint_component.y;
-                                float distance = sqrt(pow(diff_x, 2) + pow(diff_y, 2));
-                                sum += distance;
-                            }
-                        }
-
-                        if( count != 0)
-                        {
-                            distances[idx] = sum/count;
-                        }
-                    }
-                }
-
-                //get sorted indexes, the larger distance, the smaller the index
-                vector<int> index_vector(distances.size(), 0);
-                for (int i = 0 ; i != index_vector.size() ; i++) {
-                    index_vector[i] = i;
-                }
-                sort(index_vector.begin(), index_vector.end(),
-                    [&](const int& a, const int& b) {
-                        return (distances[a] > distances[b]);
-                    }
-                );
+                vector<int> index_vector = SortPosesByNeckToNose(poses);
 
                 //Convert openpose results to our own format
                 report_data.set_openpose_cnt(poses.size());
-                for( int idx = 0; idx < poses.size(); idx++ )
+                for( unsigned int idx = 0; idx < poses.size(); idx++ )
                 {
                     HumanPose pose = poses[index_vector[idx]];     //report sorted poses
                     std::string temp;

@@ -5,16 +5,19 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/utility.hpp>
 //#include <opencv2/tracking.hpp>  this is for OpenCV 3.4.6
-#include <opencv4/opencv2/tracking/tracker.hpp> 
+//#include <opencv4/opencv2/tracking/tracker.hpp> 
 #include <opencv2/highgui.hpp>
 #include <gflags/gflags.h>
 using namespace InferenceEngine;
 using namespace std;
 
-void process_image(std::string pose_model, std::string detect_model, std::string extension, double threshold_t, 
-                    double threshold_iou_t, bool bShowRenderedImage, bool bSaveTransmittedImage, std::string save_to_directory, double midPointsScoreThreshold);
+void process_image(std::string pose_model, 
+    bool bShowRenderedImage, 
+    bool bSaveTransmittedImage, 
+    string save_to_directory, 
+    double midPointsScoreThreshold);
+    
 void process_save_frame_buffer_as_JPEG_images(bool bSaveTransmittedImage, std::string save_to_directory);
-void save_image_JPEG(char* data_, std::size_t length, std::string filename);
 /*
 void FrameToBlob(const cv::Mat &frame, InferRequest::Ptr &inferRequest, const std::string &inputName);
 

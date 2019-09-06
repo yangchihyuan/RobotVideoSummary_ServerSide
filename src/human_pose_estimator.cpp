@@ -1,4 +1,4 @@
-// Copyright (C) 2018 Intel Corporation
+// Copyright (C) 2018-2019 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 //
 
@@ -17,27 +17,25 @@ namespace human_pose_estimation {
 const size_t HumanPoseEstimator::keypointsNumber = 18;
 
 HumanPoseEstimator::HumanPoseEstimator(const std::string& modelPath,
-                                       const std::string& targetDeviceName,
+                                       const std::string& targetDeviceName_,
                                        bool enablePerformanceReport,
-                                       float midPointsScoreThreshold)
+                                       const float midPointsScoreThreshold)
     : minJointsNumber(3),
       stride(8),
       pad(cv::Vec4i::all(0)),
       meanPixel(cv::Vec3f::all(128)),
       minPeaksDistance(3.0f),
-      //midPointsScoreThreshold(0.05f),           //what will happen if I increase this threshold? Can I prevent false positves?
-      midPointsScoreThreshold(midPointsScoreThreshold),
+//      midPointsScoreThreshold(0.05f),
       foundMidPointsRatioThreshold(0.8f),
       minSubsetScore(0.2f),
       inputLayerSize(-1, -1),
       upsampleRatio(4),
+      targetDeviceName(targetDeviceName_),
       enablePerformanceReport(enablePerformanceReport),
       modelPath(modelPath) {
-    plugin = InferenceEngine::PluginDispatcher({"../../../lib/intel64", ""})
-            .getPluginByDevice(targetDeviceName);
     if (enablePerformanceReport) {
-        plugin.SetConfig({{InferenceEngine::PluginConfigParams::KEY_PERF_COUNT,
-                           InferenceEngine::PluginConfigParams::YES}});
+        ie.SetConfig({{InferenceEngine::PluginConfigParams::KEY_PERF_COUNT,
+                       InferenceEngine::PluginConfigParams::YES}});
     }
     netReader.ReadNetwork(modelPath);
     std::string binFileName = fileNameNoExt(modelPath) + ".bin";
@@ -51,7 +49,7 @@ HumanPoseEstimator::HumanPoseEstimator(const std::string& modelPath,
     pafsBlobName = outputBlobsIt->first;
     heatmapsBlobName = (++outputBlobsIt)->first;
 
-    executableNetwork = plugin.LoadNetwork(network, {});
+    executableNetwork = ie.LoadNetwork(network, targetDeviceName);
     request = executableNetwork.CreateInferRequest();
 }
 
@@ -68,7 +66,7 @@ std::vector<HumanPose> HumanPoseEstimator::estimate(const cv::Mat& image) {
         input_shape[3] = inputLayerSize.width;
         input_shapes[input_name] = input_shape;
         network.reshape(input_shapes);
-        executableNetwork = plugin.LoadNetwork(network, {});
+        executableNetwork = ie.LoadNetwork(network, targetDeviceName);
         request = executableNetwork.CreateInferRequest();
     }
     InferenceEngine::Blob::Ptr input = request.GetBlob(network.getInputsInfo().begin()->first);
@@ -213,16 +211,16 @@ void HumanPoseEstimator::correctCoordinates(std::vector<HumanPose>& poses,
 }
 
 bool HumanPoseEstimator::inputWidthIsChanged(const cv::Size& imageSize) {
-    double scale = inputLayerSize.height / static_cast<double>(imageSize.height);
-    cv::Size scaledSize(cvRound(imageSize.width * scale),
-                        cvRound(imageSize.height * scale));
+    double scale = static_cast<double>(inputLayerSize.height) / static_cast<double>(imageSize.height);
+    cv::Size scaledSize(static_cast<int>(cvRound(imageSize.width * scale)),
+                        static_cast<int>(cvRound(imageSize.height * scale)));
     cv::Size scaledImageSize(std::max(scaledSize.width, inputLayerSize.height),
                              inputLayerSize.height);
     int minHeight = std::min(scaledImageSize.height, scaledSize.height);
-    scaledImageSize.width = std::ceil(
-                scaledImageSize.width / static_cast<float>(stride)) * stride;
-    pad(0) = std::floor((scaledImageSize.height - minHeight) / 2.0);
-    pad(1) = std::floor((scaledImageSize.width - scaledSize.width) / 2.0);
+    scaledImageSize.width = static_cast<int>(std::ceil(
+                scaledImageSize.width / static_cast<float>(stride))) * stride;
+    pad(0) = static_cast<int>(std::floor((scaledImageSize.height - minHeight) / 2.0));
+    pad(1) = static_cast<int>(std::floor((scaledImageSize.width - scaledSize.width) / 2.0));
     pad(2) = scaledImageSize.height - minHeight - pad(0);
     pad(3) = scaledImageSize.width - scaledSize.width - pad(1);
     if (scaledSize.width == (inputLayerSize.width - pad(1) - pad(3))) {
@@ -234,9 +232,14 @@ bool HumanPoseEstimator::inputWidthIsChanged(const cv::Size& imageSize) {
 }
 
 HumanPoseEstimator::~HumanPoseEstimator() {
-    if (enablePerformanceReport) {
-        std::cout << "Performance counts for " << modelPath << std::endl << std::endl;
-        printPerformanceCounts(request.GetPerformanceCounts(), std::cout, false);
+    try {
+        if (enablePerformanceReport) {
+            std::cout << "Performance counts for " << modelPath << std::endl << std::endl;
+            printPerformanceCounts(request, std::cout, getFullDeviceName(ie, targetDeviceName), false);
+        }
+    }
+    catch (...) {
+        std::cerr << "[ ERROR ] Unknown/internal exception happened." << std::endl;
     }
 }
 }  // namespace human_pose_estimation

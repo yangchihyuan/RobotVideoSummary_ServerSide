@@ -6,9 +6,9 @@
 #include <cmath>
 #include "Tensor.hpp"
 #include <limits>
-
-//#include <numeric>      // std::iota
-//#include <algorithm>    // std::sort
+#include "ReID.hpp"
+#include "Logger.hpp"
+#include "TensorMatConversion.hpp"
 
 using namespace human_pose_estimation;
 using namespace cv;
@@ -144,15 +144,17 @@ vector<MatPosePair> CropRegionsFromPoses(const Mat& inputImage, const vector<Hum
         else
             region_expanded.y -= expand_width;
             
-        if( region_expanded.x + region_expanded.width + expand_width > inputImage.cols)
+        if( region_expanded.x + region_expanded.width + expand_width*2 > inputImage.cols)
             region_expanded.width = inputImage.cols - region_expanded.x;
         else
-            region_expanded.width += expand_width;
+            region_expanded.width += expand_width*2;
 
-        if( region_expanded.y + region_expanded.height + expand_width > inputImage.rows)
+        if( region_expanded.y + region_expanded.height + expand_width*2 > inputImage.rows)
             region_expanded.height = inputImage.rows - region_expanded.y;
         else
-            region_expanded.height += expand_width;
+            region_expanded.height += expand_width*2;
+
+//        Logger( "region_expanded " + cv::format("(%dx%d)(%d %d)\n", region_expanded.width, region_expanded.height, region_expanded.x, region_expanded.y));
 
         HumanPose pose_offset = pose;
         for( unsigned int j=0; j<pose.keypoints.size(); j++)
@@ -172,19 +174,19 @@ vector<MatPosePair> CropRegionsFromPoses(const Mat& inputImage, const vector<Hum
 Rect GetPoseRegion(const HumanPose& pose)
 {
     float top, bottom, right, left;
-    top = numeric_limits<float>::min();
-    bottom = numeric_limits<float>::max();
+    top = numeric_limits<float>::max();
+    bottom = numeric_limits<float>::min();
     right = numeric_limits<float>::min();
     left = numeric_limits<float>::max();
     for(unsigned int i=0; i<pose.keypoints.size(); i++)
     {
-        float x = pose.keypoints[i].x;
-        float y = pose.keypoints[i].y;
+        const float x = pose.keypoints[i].x;
+        const float y = pose.keypoints[i].y;
         if( x != -1.0f && y != -1.0f)
         {
-            if( y > top)
-                top = x;
-            if( y < bottom)
+            if( y < top)
+                top = y;
+            if( y > bottom)
                 bottom = y;
             if( x > right)
                 right = x;
@@ -192,7 +194,9 @@ Rect GetPoseRegion(const HumanPose& pose)
                 left = x;
         }
     }
-    Rect region(static_cast<int>(left), static_cast<int>(bottom), static_cast<int>(right-left), static_cast<int>(top-bottom));  //x,y,width,height
+    //Rect constructor(x,y,width,height)
+    Rect region(static_cast<int>(left), static_cast<int>(top), static_cast<int>(right-left), static_cast<int>(bottom-top));
+//    Logger( "region " + cv::format("(%dx%d)(%d %d)\n", region.width, region.height, region.x, region.y));
     return region;
 }
 
@@ -242,4 +246,26 @@ vector<int> SortPosesByNeckToNose(const vector<HumanPose>& poses)
         }
     );
     return index_vector;
+}
+
+vector<array<float, 1536>> ConvertMatPosePairsToReIDFeatures(const vector<MatPosePair>& pairs)
+{
+    vector<array<float, 1536>> return_vector;
+    const Vec3f image_mean = Vec3f(105.69332121, 99.12930469, 97.90910844);
+    const Vec3f image_std = Vec3f(50.26135204, 48.62204008, 48.24029389);   //the scale here seems 0~255
+    for(unsigned int i = 0 ; i < pairs.size() ; i++)
+    {
+        Tensor tensor_image = ConvertMatToNormalizedTensor(pairs[i].mat, image_mean, image_std);
+        const int height = pairs[i].mat.rows;
+        const int width = pairs[i].mat.cols;
+        const int depth = 18;
+        Tensor tensor_posemap(DT_FLOAT, TensorShape({1,height,width,depth}));
+        ConvertPoseToTensor(pairs[i].pose, tensor_posemap);
+        Tensor ConcatenatedTensor = ConcatenateTensors(tensor_image, tensor_posemap, 3);
+        //resize tensor to 224x224
+        Tensor resized_Tensor = ResizeTensor(ConcatenatedTensor, 224, 224);
+        array<float, 1536> feature = ComputePSN_Feature(resized_Tensor);
+        return_vector.push_back(feature);
+    }
+    return return_vector;
 }

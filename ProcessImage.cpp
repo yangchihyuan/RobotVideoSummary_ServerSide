@@ -221,7 +221,12 @@ void process_image(std::string pose_model,
 
                 //Crop regions from openposes results
                 vector<MatPosePair> pairs = CropRegionsFromPoses(inputImage, poses);
-                
+                if(pairs.size() > 0)
+                {
+                    imshow("cropped",pairs[0].mat);
+                    waitKey(1);
+                }
+                vector<array<float,1536>> ReID_features = ConvertMatPosePairsToReIDFeatures(pairs);
 
                 //Sort OpenVINO's openpose results by the distance between neck to nose, eyes, and ears
                 //compute the distnaces

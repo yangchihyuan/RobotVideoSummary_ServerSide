@@ -19,6 +19,8 @@ set(SOURCES src/human_pose.cpp
             Pose.cpp
             Tensor.cpp
             JPEG.cpp
+            ReID.cpp
+            TensorMatConversion.cpp
             ${PROTO_SRC})
 
 file (GLOB_RECURSE HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)

@@ -6,7 +6,6 @@
 #include <cmath>
 #include "Tensor.hpp"
 #include <limits>
-#include "ReID.hpp"
 #include "Logger.hpp"
 #include "TensorMatConversion.hpp"
 
@@ -131,42 +130,45 @@ vector<MatPosePair> CropRegionsFromPoses(const Mat& inputImage, const vector<Hum
     for(unsigned int i=0; i< poses.size(); i++)
     {
         HumanPose pose = poses[i];
-        Rect region = GetPoseRegion(pose);
-        Rect region_expanded = region;
-        int expand_width = 12;
-        if(region_expanded.x < expand_width)
-            region_expanded.x = 0;
-        else
-            region_expanded.x -= expand_width;
-            
-        if( region_expanded.y < expand_width)
-            region_expanded.y = 0;
-        else
-            region_expanded.y -= expand_width;
-            
-        if( region_expanded.x + region_expanded.width + expand_width*2 > inputImage.cols)
-            region_expanded.width = inputImage.cols - region_expanded.x;
-        else
-            region_expanded.width += expand_width*2;
-
-        if( region_expanded.y + region_expanded.height + expand_width*2 > inputImage.rows)
-            region_expanded.height = inputImage.rows - region_expanded.y;
-        else
-            region_expanded.height += expand_width*2;
-
-//        Logger( "region_expanded " + cv::format("(%dx%d)(%d %d)\n", region_expanded.width, region_expanded.height, region_expanded.x, region_expanded.y));
-
-        HumanPose pose_offset = pose;
-        for( unsigned int j=0; j<pose.keypoints.size(); j++)
+        if( pose.keypoints[1].x != -1.0f && pose.keypoints[1].y != -1.0f)   //ignore some poses without the center point
         {
-            pose_offset.keypoints[j].x -= region_expanded.x;
-            pose_offset.keypoints[j].y -= region_expanded.y;
-        }
-        MatPosePair pair;
-        pair.mat = inputImage(region_expanded);
-        pair.pose = pose_offset;
+            Rect region = GetPoseRegion(pose);
+            Rect region_expanded = region;
+            int expand_width = 12;
+            if(region_expanded.x < expand_width)
+                region_expanded.x = 0;
+            else
+                region_expanded.x -= expand_width;
+                
+            if( region_expanded.y < expand_width)
+                region_expanded.y = 0;
+            else
+                region_expanded.y -= expand_width;
+                
+            if( region_expanded.x + region_expanded.width + expand_width*2 > inputImage.cols)
+                region_expanded.width = inputImage.cols - region_expanded.x;
+            else
+                region_expanded.width += expand_width*2;
 
-        return_vector.push_back(pair);
+            if( region_expanded.y + region_expanded.height + expand_width*2 > inputImage.rows)
+                region_expanded.height = inputImage.rows - region_expanded.y;
+            else
+                region_expanded.height += expand_width*2;
+
+    //        Logger( "region_expanded " + cv::format("(%dx%d)(%d %d)\n", region_expanded.width, region_expanded.height, region_expanded.x, region_expanded.y));
+
+            HumanPose pose_offset = pose;
+            for( unsigned int j=0; j<pose.keypoints.size(); j++)
+            {
+                pose_offset.keypoints[j].x -= region_expanded.x;
+                pose_offset.keypoints[j].y -= region_expanded.y;
+            }
+            MatPosePair pair;
+            pair.mat = inputImage(region_expanded);
+            pair.pose = pose_offset;
+
+            return_vector.push_back(pair);
+        }
     }
     return return_vector;
 }
@@ -248,7 +250,10 @@ vector<int> SortPosesByNeckToNose(const vector<HumanPose>& poses)
     return index_vector;
 }
 
-vector<array<float, 1536>> ConvertMatPosePairsToReIDFeatures(const vector<MatPosePair>& pairs)
+vector<array<float, 1536>> ConvertMatPosePairsToReIDFeatures(
+    const vector<MatPosePair>& pairs, 
+    PSE& id_feature_generator,
+    unique_ptr<Session>& tf_session)
 {
     vector<array<float, 1536>> return_vector;
     const Vec3f image_mean = Vec3f(105.69332121, 99.12930469, 97.90910844);
@@ -264,7 +269,7 @@ vector<array<float, 1536>> ConvertMatPosePairsToReIDFeatures(const vector<MatPos
         Tensor ConcatenatedTensor = ConcatenateTensors(tensor_image, tensor_posemap, 3);
         //resize tensor to 224x224
         Tensor resized_Tensor = ResizeTensor(ConcatenatedTensor, 224, 224);
-        array<float, 1536> feature = ComputePSN_Feature(resized_Tensor);
+        array<float, 1536> feature = id_feature_generator.ComputePSN_Feature(resized_Tensor, tf_session);
         return_vector.push_back(feature);
     }
     return return_vector;

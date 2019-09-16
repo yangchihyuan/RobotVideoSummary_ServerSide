@@ -1,8 +1,11 @@
+#pragma once
+
 #include <string>
 #include <opencv2/opencv.hpp>
 
 #include "human_pose.hpp"
 #include "tensorflow/core/framework/tensor.h"
+#include "PoseSensitiveEmbedding.hpp"
 
 using namespace std;
 using namespace cv;
@@ -21,5 +24,8 @@ int ConvertPoseToTensor(const HumanPose& pose, Tensor &Tensor);
 vector<MatPosePair> CropRegionsFromPoses(const Mat& inputImage, const vector<HumanPose>& poese);
 Rect GetPoseRegion(const HumanPose& pose);
 vector<int> SortPosesByNeckToNose(const vector<HumanPose>& poses);
-vector<array<float,1536>> ConvertMatPosePairsToReIDFeatures(const vector<MatPosePair>& pairs);
+vector<array<float,1536>> ConvertMatPosePairsToReIDFeatures(
+    const vector<MatPosePair>& pairs, 
+    PSE& id_feature_generator,
+    unique_ptr<Session>& tf_session);
 

@@ -1,7 +1,6 @@
 #include <fstream>
 #include <mutex>
 #include <thread>
-#include <inference_engine.hpp>
 #include "human_pose_estimator.hpp"
 #include "render_human_pose.hpp"
 
@@ -10,29 +9,14 @@
 #include <numeric>      // std::iota
 #include <algorithm>    // std::sort
 #include "JPEG.hpp"
-#include "Pose.hpp"
+#include "AnalyzedResults.pb.h"
+#include <gflags/gflags.h>
+#include "Logger.hpp"
+#include "utility_TimeRecorder.hpp"
 
-// Header files required by Tensorflow
-/*
-#include <cmath>
-#include <chrono>
-#include "tensorflow/core/platform/init_main.h"
-#include "tensorflow/core/util/command_line_flags.h"
-#include <tensorflow/core/platform/env.h>
-#include <tensorflow/core/public/session.h>
-#include "tensorflow/core/framework/graph.pb.h"
-#include "tensorflow/core/framework/tensor.h"
-#include "tensorflow/core/graph/default_device.h"
-#include "tensorflow/core/graph/graph_def_builder.h"
-#include "tensorflow/core/lib/io/path.h"
-#include <tensorflow/core/protobuf/meta_graph.pb.h>
-*/
+
 using namespace human_pose_estimation;
-//using namespace InferenceEngine;        //for yolov3 InferencePlugin
 using namespace cv;
-//using namespace tensorflow;
-
-DECLARE_bool(Verbose);
 
 extern int status_frame_buffer1;
 extern int status_frame_buffer2;
@@ -56,9 +40,7 @@ void process_save_frame_buffer_as_JPEG_images(bool bSaveTransmittedImage, std::s
         if( status_frame_buffer2 == 1)
         {
             char *data_ = frame_buffer2;
-//            int length = frame_buffer2_length;
             std::string key_info(data_);
-//            int key_length = key_info.length();
             std::string str_JPEG_length(data_+ key_info.length() + 1);
             int JPEG_length = frame_buffer2_length - (key_info.length() + str_JPEG_length.length() + 2 );
             save_image_JPEG( data_ + key_info.length() + str_JPEG_length.length() + 2, JPEG_length , save_to_directory + "/" + key_info.substr(0,13) + ".jpg");
@@ -79,15 +61,23 @@ void process_image(std::string pose_model,
     bool bShowRenderedImage, 
     bool bSaveTransmittedImage, 
     std::string save_to_directory, 
-    double midPointsScoreThreshold)
+    double midPointsScoreThreshold,
+    PSE id_feature_generator)
 {
     HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
+    unique_ptr<Session> psession;
+    psession.reset(NewSession(SessionOptions()));
+    Status session_create_status = psession->Create(id_feature_generator.graph_def);
+    if (!session_create_status.ok())
+    {
+        Logger("Session creation fail.");
+    }
+
 
     while(true)
     {
         if( status_frame_buffer1 == 1)
         {
-//            system_clock::time_point time_detection_start = system_clock::now();
             char *data_ = frame_buffer1;
             int length = frame_buffer1_length;
             std::string key_info(data_);
@@ -125,108 +115,25 @@ void process_image(std::string pose_model,
                     save_image_JPEG(data_ + key_info.length() + str_JPEG_length.length() + 2, JPEG_length , filename);
                 }
 
-//                const size_t width  = (size_t) inputImage.cols;
-//                const size_t height = (size_t) inputImage.rows;
-
                 cv::Mat displayImage = inputImage.clone();
 
                 //std::thread thread_yolo(yolo_detect, inputImage, &body_coord);
                 //std::thread thread_charades_squeezenet(action_recognition_charades_webcam,inputImage, &body_coord);
+                TimeRecorder Recorder_OpenVINO_estimator;
                 std::vector<HumanPose> poses = estimator.estimate(inputImage );
+                Recorder_OpenVINO_estimator.Stop();
+                Logger("OpenVINO pose estimator time (millisecond):" + Recorder_OpenVINO_estimator.GetDurationString());
 
-/*
-                if( poses.size() == 1)
-                {
-                    //set the tracking region as the face
-                    HumanPose pose = poses.at(0);
-                    auto keypoint_rightear = pose.keypoints.at(16); //right ear
-                    auto keypoint_leftear = pose.keypoints.at(17); //left ear
-                    if( keypoint_rightear.x >=0 && keypoint_rightear.y != -1 && keypoint_leftear.x >=0 && keypoint_leftear.y != -1 )
-                    {
-                        bool bTwoEarsSufficientlyApart = false;
-                        if( keypoint_leftear.x - keypoint_rightear.x >= 20 )
-                        {
-                            bTwoEarsSufficientlyApart = true;
-                            roi.width = keypoint_leftear.x - keypoint_rightear.x;
-                            roi.x = keypoint_rightear.x;
-                            roi.height = roi.width;
-                            roi.y = keypoint_leftear.y - 0.5 *roi.width;
-                        }
-                        else if(keypoint_rightear.x - keypoint_leftear.x >= 20)
-                        {
-                            bTwoEarsSufficientlyApart = true;
-                            roi.width = keypoint_rightear.x - keypoint_leftear.x;
-                            roi.x = keypoint_leftear.x;
-                            roi.height = roi.width;
-                            roi.y = keypoint_rightear.y - 0.5 *roi.width;                        
-                        }
 
-                        if( bTwoEarsSufficientlyApart == true && roi.y >= 0)
-                        {
-                            tracker.reset();
-                            tracker = TrackerGOTURN::create();
-                            tracker->init(inputImage, roi);
-                            rectangle(displayImage, roi, Scalar( 0, 255, 0 ), 2, 1 );     //green
-                            str_timestamp_initialize_tracker = str_timestamp;
-                            b_tracker_initialized = true;
-                            report_data.set_tracker_roi_x(static_cast<int>(roi.x));
-                            report_data.set_tracker_roi_y(static_cast<int>(roi.y));
-                            report_data.set_tracker_roi_width(static_cast<int>(roi.width));
-                            report_data.set_tracker_roi_height(static_cast<int>(roi.height));
-                            report_data.set_roi_rectangle_color(1);
-                        }
-                    }
-                }
-
-                if(b_tracker_initialized && str_timestamp.compare(str_timestamp_initialize_tracker) != 0)
-                {
-                    bool b_do_track = false;
-                    if(poses.size() == 0 )
-                        b_do_track = true;
-                    
-                    if( poses.size() == 1)
-                    {
-                        HumanPose pose = poses.at(0);
-                        auto keypoint_rightear = pose.keypoints.at(16); //right ear
-                        auto keypoint_leftear = pose.keypoints.at(17); //left ear
-                        if( keypoint_rightear.x <= 0 || keypoint_leftear.x <= 0)
-                            b_do_track = true;
-                    }
-
-                    if( b_do_track)
-                    {
-                        bool ok = tracker->update(inputImage, roi);
-                        if(ok)
-                        {
-                            if(FLAGS_Verbose)
-                                cout << "Tracker x:" << roi.x << " y:" << roi.y << " width:" << roi.width << " height:" << roi.height << endl;
-                            //how to let the robot to track the box? There is no openpose landmark locations. The robot need to take two different input format.
-                            report_data.set_tracker_roi_x(static_cast<int>(roi.x));
-                            report_data.set_tracker_roi_y(static_cast<int>(roi.y));
-                            report_data.set_tracker_roi_width(static_cast<int>(roi.width));
-                            report_data.set_tracker_roi_height(static_cast<int>(roi.height));
-                            report_data.set_roi_rectangle_color(2);
-
-                            if( 0 <= roi.x && 0 <= roi.y && roi.x + roi.width <= inputImage.cols && roi.y + roi.height <= inputImage.rows )
-                                rectangle(displayImage, roi, Scalar( 0, 0, 255 ), 2, 1 );     //red
-                        }
-                        else
-                        {
-                            if(FLAGS_Verbose)
-                                cout << "Tracker not ok" << endl;
-                        }
-                    }                    
-                }
-*/
-
-                //Crop regions from openposes results
+                //ReID feature computation
+                TimeRecorder Recorder_ReID;
                 vector<MatPosePair> pairs = CropRegionsFromPoses(inputImage, poses);
-                if(pairs.size() > 0)
-                {
-                    imshow("cropped",pairs[0].mat);
-                    waitKey(1);
-                }
-                vector<array<float,1536>> ReID_features = ConvertMatPosePairsToReIDFeatures(pairs);
+                vector<array<float,1536>> ReID_features = ConvertMatPosePairsToReIDFeatures(pairs, id_feature_generator, psession);
+                Recorder_ReID.Stop();
+                Logger("PSE Process time (millisecond):" + Recorder_ReID.GetDurationString());
+
+                //evaluate ReID feature similarity
+
 
                 //Sort OpenVINO's openpose results by the distance between neck to nose, eyes, and ears
                 //compute the distnaces
@@ -256,11 +163,6 @@ void process_image(std::string pose_model,
                     report_data.add_openpose_coord(temp);
                 }
 
-                
-                //thread_charades_squeezenet.join();
-//                if( bSaveTransmittedImage )
-//                    thread_save_image.join();
-
                 strcpy(str_results, report_data.DebugString().c_str());     //How to transmit a protobuf object?
 
                 if( bShowRenderedImage )
@@ -269,6 +171,9 @@ void process_image(std::string pose_model,
                     cv::imshow("opencv result", displayImage);
                     cv::waitKey(1);
                 }
+
+                renderHumanPose(poses, displayImage);
+//                SaveSamples(save_to_directory, str_timestamp, pairs, displayImage);
 
                 status_frame_buffer1 = 0;
                 gMutex_send_results.unlock();
@@ -280,6 +185,18 @@ void process_image(std::string pose_model,
         }
     }
 }
+
+void SaveSamples(const string& save_to_directory, const string& timestamp, const vector<MatPosePair>& pairs, const Mat& displayImage)
+{
+    string save_file_name = save_to_directory + "/" + timestamp + "_render.jpg";
+    imwrite(save_file_name, displayImage);
+    for( unsigned int i=0; i< pairs.size(); i++)
+    {
+        save_file_name = save_to_directory + "/" + timestamp + "_region" + to_string(i) + ".jpg";
+        imwrite(save_file_name, pairs[i].mat);
+    }
+}
+
 
 /*
 void yolo_detect(cv::Mat img_raw, ImageAnalyzedResults::ReportData *body_coord)

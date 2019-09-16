@@ -10,7 +10,7 @@
 
 #include <vector>
 #include <thread>       //without this, std::thread is unknown
-#include <dirent.h>     //without this, DIR is unknown
+//#include <dirent.h>     //without this, DIR is unknown
 
 
 #include <samples/ocv_common.hpp>
@@ -18,6 +18,7 @@
 #include "8_openvino.hpp"
 #include "SocketToServer.hpp"
 #include "ProcessImage.hpp"
+#include "utility_directory.hpp"
 
 using namespace InferenceEngine;
 
@@ -42,6 +43,9 @@ int main(int argc, char* argv[]) {
         //Setup protobuf
         GOOGLE_PROTOBUF_VERIFY_VERSION;
 
+        if(!FLAGS_save_to_directory.empty())
+            CreateDirectory(FLAGS_save_to_directory);
+        PSE id_feature_generator(FLAGS_graph_path);
         std::thread thread_receive_frame(receive_socket, FLAGS_port_number);
         std::thread thread_report_results(report_results, FLAGS_port_number+1);     //another thread to send back results.
         std::thread thread_image_process(process_image, 
@@ -49,21 +53,9 @@ int main(int argc, char* argv[]) {
             FLAGS_ShowRenderedImage, 
             FLAGS_SaveTransmittedImage, 
             FLAGS_save_to_directory,
-            (float)FLAGS_midPointsScoreThreshold
+            (float)FLAGS_midPointsScoreThreshold,
+            id_feature_generator
         );
-        if(FLAGS_SaveTransmittedImage){
-            DIR* dir = opendir(FLAGS_save_to_directory.c_str() );
-            if (dir)
-            {
-                /* Directory exists. */
-                closedir(dir);
-            }
-            else if (ENOENT == errno)
-            {
-                /* Directory does not exist. */
-                mkdir(FLAGS_save_to_directory.c_str(), S_IRWXU|S_IRWXG);
-            }
-        }
 //        std::thread thread_save_buffer_as_JPEG(process_save_frame_buffer_as_JPEG_images, FLAGS_SaveTransmittedImage, FLAGS_save_to_directory);
 
         thread_receive_frame.join();

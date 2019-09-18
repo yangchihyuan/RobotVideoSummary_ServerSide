@@ -1,6 +1,7 @@
 #include "ReID.hpp"
 #include "utility_compute.hpp"
 #include <algorithm>  //for min_element
+#include <limits>
 
 feature_id_pair::feature_id_pair(array<float,1536> input_feature, int input_id)
 : feature(input_feature),
@@ -26,18 +27,31 @@ unsigned int ReID::GetSampleNumber()
     return pairs.size();
 }
 
-int ReID::Retrieve_id(array<float, 1536> feature)
+bool ReID::HaveSufficientSamples()
 {
-    vector<float> norm;
-    for( unsigned int i=0; i<pairs.size(); i++)
-    {
-        float norm_value = ComputeL2Norm(feature, pairs[i].feature);
-        norm.push_back(norm_value);
-    }
-    //find the minimum
-    auto iterator = min_element(norm.begin(), norm.end());
-
-    //how to get the index?
+    return pairs.size() == sample_number_limitation;
 }
+
+vector<int> ReID::SortByFeatureSimilarity(vector<array<float, 1536>> features)
+{
+    unsigned int features_size = features.size();
+    vector<float> minimal_norm_vector(features_size, numeric_limits<float>::max());
+    for(unsigned int f_index = 0 ; f_index < features_size; f_index++)
+    {
+        array<float, 1536> feature = features[f_index];
+        for( unsigned int i=0; i<pairs.size(); i++)
+        {
+            float norm_value = ComputeL2Norm(feature, pairs[i].feature);
+//            int id = pairs[i].id;
+            if( norm_value < minimal_norm_vector[f_index])
+                minimal_norm_vector[f_index] = norm_value;
+        }
+    }
+    //sort minimal_norm_vector ascendantly
+//    int index = min_element(minimal_norm_vector.begin(), minimal_norm_vector.end()) - minimal_norm_vector.begin();
+//    return index;
+    return SortIndex(minimal_norm_vector, false);
+}
+
 
 

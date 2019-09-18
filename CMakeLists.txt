@@ -38,7 +38,7 @@ ie_add_sample(NAME 8_openvino
 
 
 #enable debug information
-#set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")   
+set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")   
 
 include_directories(${PROTOBUF_INCLUDE_DIRS})
 get_filename_component(PROTO_HDR_DIRECTORY ${PROTO_HDR} DIRECTORY)
@@ -47,7 +47,7 @@ include_directories(${PROTO_HDR_DIRECTORY})
 
 link_directories(${LIB_FOLDER} /usr/local/lib)
 
-#set_target_properties(${TARGET_NAME} PROPERTIES "CMAKE_CXX_FLAGS" "${CMAKE_CXX_FLAGS} -fPIE"
+set_target_properties(${TARGET_NAME} PROPERTIES "CMAKE_CXX_FLAGS" "${CMAKE_CXX_FLAGS}")
 #  COMPILE_PDB_NAME ${TARGET_NAME})
 
 #target_include_directories(${TARGET_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")

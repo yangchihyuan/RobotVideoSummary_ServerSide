@@ -13,9 +13,6 @@
 DEFINE_string(pose_model, "", "model, an xml file");
 DEFINE_string(detect_model, "", "object detection model");
 
-//DEFINE_double(yolo_threshold_t, 0.5, "");
-//DEFINE_double(yolo_threshold_iou_t, 0.4, "");
-
 DEFINE_bool(ShowRenderedImage, false, "If enabled, it will show the rendered skeleton, but it will inrease the network load.");
 DEFINE_bool(SaveTransmittedImage, false, "If enabled, it will save the transmitted image into the disk.");
 DEFINE_string(save_to_directory, "/4t/yangchihyuan/TransmittedImages/temp","directory of transmitted JPEG frames");

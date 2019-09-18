@@ -7,12 +7,12 @@
 #include "ProcessImage.hpp"
 #include <vector>
 #include <numeric>      // std::iota
-#include <algorithm>    // std::sort
 #include "JPEG.hpp"
 #include "AnalyzedResults.pb.h"
 #include <gflags/gflags.h>
 #include "Logger.hpp"
 #include "utility_TimeRecorder.hpp"
+#include "ReID.hpp"
 
 
 using namespace human_pose_estimation;
@@ -60,7 +60,7 @@ bool comparator ( const mypair& l, const mypair& r)
 void process_image(std::string pose_model, 
     bool bShowRenderedImage, 
     bool bSaveTransmittedImage, 
-    std::string save_to_directory, 
+    string save_to_directory, 
     double midPointsScoreThreshold,
     PSE id_feature_generator)
 {
@@ -72,7 +72,7 @@ void process_image(std::string pose_model,
     {
         Logger("Session creation fail.");
     }
-
+    ReID reid;
 
     while(true)
     {
@@ -80,17 +80,17 @@ void process_image(std::string pose_model,
         {
             char *data_ = frame_buffer1;
             int length = frame_buffer1_length;
-            std::string key_info(data_);
-            std::string str_timestamp = key_info.substr(0,13);
+            string key_info(data_);
+            string str_timestamp = key_info.substr(0,13);
 
             int key_length = key_info.length();  
-            std::string str_JPEG_length(data_+ key_info.length() + 1);
+            string str_JPEG_length(data_+ key_info.length() + 1);
             //it appears that the stio() still can crash. I don't know why. Use try to protect it.
             int JPEG_length = 0;
             try{
-                JPEG_length = std::stoi(str_JPEG_length);
+                JPEG_length = stoi(str_JPEG_length);
             }
-            catch( std::exception &e){
+            catch( exception &e){
             }
  
             ImageAnalyzedResults::ReportData report_data;
@@ -124,26 +124,49 @@ void process_image(std::string pose_model,
                 Recorder_OpenVINO_estimator.Stop();
                 Logger("OpenVINO pose estimator time (millisecond):" + Recorder_OpenVINO_estimator.GetDurationString());
 
-
                 //ReID feature computation
                 TimeRecorder Recorder_ReID;
-                vector<MatPosePair> pairs = CropRegionsFromPoses(inputImage, poses);
-                vector<array<float,1536>> ReID_features = ConvertMatPosePairsToReIDFeatures(pairs, id_feature_generator, psession);
+                vector<PoseRegion> regions = CropRegionsFromPoses(inputImage, poses);
+                vector<array<float,1536>> ReID_features = ConvertPoseRegionsToReIDFeatures(regions, id_feature_generator, psession);
                 Recorder_ReID.Stop();
                 Logger("PSE Process time (millisecond):" + Recorder_ReID.GetDurationString());
 
-                //evaluate ReID feature similarity
+                //add positive example
+                if( regions.size() == 1 && regions.size() == 1)
+                {
+                    reid.AddSample(ReID_features[0], 0);        //assume id==0 is the target
+                    Logger("reid sample number: " + to_string(reid.GetSampleNumber()));
+                }
+                else if(regions.size() > 1 && reid.HaveSufficientSamples())
+                {
+                    //evaluate ReID feature similarity
+                    vector<int> index_vector = reid.SortByFeatureSimilarity(ReID_features);
 
-
+                    //re-arrange the order of poses
+                    int index_of_most_similar_region = index_vector[0];
+                    int index_of_most_similar_pose = regions[index_of_most_similar_region].index_in_poses;
+                    HumanPose selected_pose = poses[index_of_most_similar_pose];
+                    poses.erase(poses.begin()+index_of_most_similar_pose);
+                    poses.insert(poses.begin(), selected_pose);
+                }
+/*                
+                Logger("number of samples: " + to_string(reid.GetSampleNumber()));
+                Logger("index_vector");
+                for(unsigned int i = 0 ; i<index_vector.size() ; i++)
+                {
+                    Logger(to_string(index_vector[i]));
+                }
+*/
+                
                 //Sort OpenVINO's openpose results by the distance between neck to nose, eyes, and ears
                 //compute the distnaces
-                vector<int> index_vector = SortPosesByNeckToNose(poses);
+//                vector<int> index_vector = SortPosesByNeckToNose(poses);
 
                 //Convert openpose results to our own format
                 report_data.set_openpose_cnt(poses.size());
                 for( unsigned int idx = 0; idx < poses.size(); idx++ )
                 {
-                    HumanPose pose = poses[index_vector[idx]];     //report sorted poses
+                    HumanPose pose = poses[idx];
                     std::string temp;
                     for( auto keypoint : pose.keypoints)
                     {
@@ -173,7 +196,7 @@ void process_image(std::string pose_model,
                 }
 
                 renderHumanPose(poses, displayImage);
-//                SaveSamples(save_to_directory, str_timestamp, pairs, displayImage);
+//                SaveSamples(save_to_directory, str_timestamp, regions, displayImage);
 
                 status_frame_buffer1 = 0;
                 gMutex_send_results.unlock();
@@ -186,14 +209,14 @@ void process_image(std::string pose_model,
     }
 }
 
-void SaveSamples(const string& save_to_directory, const string& timestamp, const vector<MatPosePair>& pairs, const Mat& displayImage)
+void SaveSamples(const string& save_to_directory, const string& timestamp, const vector<PoseRegion>& regions, const Mat& displayImage)
 {
     string save_file_name = save_to_directory + "/" + timestamp + "_render.jpg";
     imwrite(save_file_name, displayImage);
-    for( unsigned int i=0; i< pairs.size(); i++)
+    for( unsigned int i=0; i< regions.size(); i++)
     {
         save_file_name = save_to_directory + "/" + timestamp + "_region" + to_string(i) + ".jpg";
-        imwrite(save_file_name, pairs[i].mat);
+        imwrite(save_file_name, regions[i].mat);
     }
 }
 

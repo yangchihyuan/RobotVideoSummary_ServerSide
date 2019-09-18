@@ -8,6 +8,7 @@
 #include <limits>
 #include "Logger.hpp"
 #include "TensorMatConversion.hpp"
+#include "utility_compute.hpp"
 
 using namespace human_pose_estimation;
 using namespace cv;
@@ -124,9 +125,9 @@ int ConvertPoseToTensor(const HumanPose& pose, tensorflow::Tensor &tensor)
     return 1;
 }
 
-vector<MatPosePair> CropRegionsFromPoses(const Mat& inputImage, const vector<HumanPose>& poses)
+vector<PoseRegion> CropRegionsFromPoses(const Mat& inputImage, const vector<HumanPose>& poses)
 {
-    vector<MatPosePair> return_vector;
+    vector<PoseRegion> return_vector;
     for(unsigned int i=0; i< poses.size(); i++)
     {
         HumanPose pose = poses[i];
@@ -163,11 +164,12 @@ vector<MatPosePair> CropRegionsFromPoses(const Mat& inputImage, const vector<Hum
                 pose_offset.keypoints[j].x -= region_expanded.x;
                 pose_offset.keypoints[j].y -= region_expanded.y;
             }
-            MatPosePair pair;
-            pair.mat = inputImage(region_expanded);
-            pair.pose = pose_offset;
+            PoseRegion pose_region;
+            pose_region.mat = inputImage(region_expanded);
+            pose_region.pose = pose_offset;
+            pose_region.index_in_poses = i;
 
-            return_vector.push_back(pair);
+            return_vector.push_back(pose_region);
         }
     }
     return return_vector;
@@ -238,6 +240,8 @@ vector<int> SortPosesByNeckToNose(const vector<HumanPose>& poses)
     }
 
     //get sorted indexes, the larger distance, the smaller the index
+    return SortIndex(distances, true);
+/*    
     vector<int> index_vector(distances.size(), 0);
     for (unsigned int i = 0 ; i != index_vector.size() ; i++) {
         index_vector[i] = i;
@@ -248,10 +252,11 @@ vector<int> SortPosesByNeckToNose(const vector<HumanPose>& poses)
         }
     );
     return index_vector;
+    */
 }
 
-vector<array<float, 1536>> ConvertMatPosePairsToReIDFeatures(
-    const vector<MatPosePair>& pairs, 
+vector<array<float, 1536>> ConvertPoseRegionsToReIDFeatures(
+    const vector<PoseRegion>& pairs, 
     PSE& id_feature_generator,
     unique_ptr<Session>& tf_session)
 {

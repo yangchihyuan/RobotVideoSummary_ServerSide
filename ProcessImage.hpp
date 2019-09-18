@@ -13,4 +13,4 @@ void process_image(string pose_model,
     PSE id_feature_generator);
     
 void process_save_frame_buffer_as_JPEG_images(bool bSaveTransmittedImage, std::string save_to_directory);
-void SaveSamples(const string& save_to_directory, const string& timestamp, const vector<MatPosePair>& pairs, const Mat& displayImage);
+void SaveSamples(const string& save_to_directory, const string& timestamp, const vector<PoseRegion>& pairs, const Mat& displayImage);

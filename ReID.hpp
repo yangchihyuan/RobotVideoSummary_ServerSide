@@ -18,7 +18,8 @@ class ReID
     ReID();
     void AddSample(array<float, 1536> feature, int id);
     unsigned int GetSampleNumber();
-    int Retrieve_id(array<float, 1536> feature);
+    vector<int> SortByFeatureSimilarity(vector<array<float, 1536>> features);
+    bool HaveSufficientSamples();
 
     private:
     vector<feature_id_pair> pairs;

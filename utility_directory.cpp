@@ -27,6 +27,72 @@ int ListFiles(const string& directory, const string& file_extension, vector<stri
     }
 }
 
+vector<string> ListFiles(const string& directory, const string& file_extension )
+{
+    DIR *dir;
+    struct dirent *ent;
+    int ext_length = file_extension.length();
+    vector<string> file_list;
+    if ((dir = opendir(directory.c_str())) != NULL) {
+        /* print all the files and directories within directory */
+        while ((ent = readdir(dir)) != NULL) {
+            int string_length = strlen(ent->d_name);
+            if(string_length > ext_length)
+                if( strcmp(ent->d_name+string_length-ext_length, file_extension.c_str()) == 0)  //==0 means equals
+                { 
+                    file_list.push_back(string(ent->d_name));       //ent->d_name is char[256]
+                }
+        }
+        closedir (dir);
+    } else {
+        /* could not open directory */
+    }
+    return file_list;
+}
+
+vector<string> ListFiles_Sorted(const string& directory, const string& file_extension )
+{
+    struct dirent **entry_list;
+    int count;
+    int i;    
+    int ext_length = file_extension.length();
+    vector<string> file_list;
+    count = scandir(directory.c_str(), &entry_list, 0, alphasort);
+    if (count < 0) {
+        perror("scandir");
+    }
+
+    for (i = 0; i < count; i++) {
+        struct dirent *entry;
+
+        entry = entry_list[i];
+        int string_length = strlen(entry->d_name);
+        if(string_length > ext_length)
+            if( strcmp(entry->d_name+string_length-ext_length, file_extension.c_str()) == 0)  //==0 means equals
+            { 
+                file_list.push_back(string(entry->d_name));       //ent->d_name is char[256]
+            }
+        free(entry);
+    }
+/* 
+    free(entry_list);
+    if ((dir = opendir()) != NULL) {
+        while ((ent = readdir(dir)) != NULL) {
+            int string_length = strlen(ent->d_name);
+            if(string_length > ext_length)
+                if( strcmp(ent->d_name+string_length-ext_length, file_extension.c_str()) == 0)  //==0 means equals
+                { 
+                    file_list.push_back(string(ent->d_name));       //ent->d_name is char[256]
+                }
+        }
+        closedir (dir);
+    } else {
+    }
+    */
+    return file_list;
+}
+
+
 void CreateDirectory(const string& directory)
 {
     DIR* dir = opendir(directory.c_str() );

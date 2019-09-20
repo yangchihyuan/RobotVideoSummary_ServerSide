@@ -13,7 +13,10 @@
 #include "Logger.hpp"
 #include "utility_TimeRecorder.hpp"
 #include "ReID.hpp"
-
+#include "utility_directory.hpp"
+#include "utility_string.hpp"
+//#include <opencv2/imgproc/imgproc_c.h>  //for cv::CV_AA
+//#include <opencv2/opencv.hpp>
 
 using namespace human_pose_estimation;
 using namespace cv;
@@ -72,7 +75,7 @@ void process_image(std::string pose_model,
     {
         Logger("Session creation fail.");
     }
-    ReID reid;
+    ReID reid(100);
 
     while(true)
     {
@@ -339,3 +342,166 @@ void yolo_detect(cv::Mat img_raw, ImageAnalyzedResults::ReportData *body_coord)
     //printf("Predicted in %f seconds. \n", what_time_is_it_now() - time);
 }
 */
+
+void process_image_offline(string pose_model, 
+    bool bShowRenderedImage, 
+    bool bSaveTransmittedImage, 
+    string save_to_directory, 
+    double midPointsScoreThreshold,
+    PSE id_feature_generator,
+    string output_directory,
+    vector<string> file_list)
+{
+    HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
+    unique_ptr<Session> psession;
+    psession.reset(NewSession(SessionOptions()));
+    Status session_create_status = psession->Create(id_feature_generator.graph_def);
+    if (!session_create_status.ok())
+    {
+        Logger("Session creation fail.");
+    }
+    ReID reid(100);
+    ReID SampleCollector(102);
+    string output_directory_region = output_directory + "_region";
+
+    //list all files in the save_to_directory
+    //vector<string> file_list = ListFiles_Sorted(save_to_directory, "jpg");
+    for(unsigned int file_idx = 0 ; file_idx < file_list.size() ; file_idx++ )
+    {
+        string filename = file_list[file_idx];
+        ImageAnalyzedResults::ReportData report_data;
+        report_data.set_key(filename);
+        Mat inputImage;
+        inputImage = imread(save_to_directory + "/" + filename);
+
+        Mat displayImage = inputImage.clone();
+
+        TimeRecorder Recorder_OpenVINO_estimator;
+        vector<HumanPose> poses = estimator.estimate(inputImage );
+        Recorder_OpenVINO_estimator.Stop();
+        Logger("OpenVINO pose estimator time (millisecond):" + Recorder_OpenVINO_estimator.GetDurationString());
+
+        //ReID feature computation
+        TimeRecorder Recorder_ReID;
+        vector<PoseRegion> regions = CropRegionsFromPoses(inputImage, poses);
+        //I have to dump regions to create ground truth labels
+        string rawfilename = RemoveFileExtension(filename);
+        for(unsigned int i=0; i<regions.size(); i++)
+        {
+            imwrite(output_directory_region + "/" + rawfilename + "_" + to_string(i) + ".jpg", regions[i].mat);
+        }
+
+        vector<array<float,1536>> ReID_features = ConvertPoseRegionsToReIDFeatures(regions, id_feature_generator, psession);
+        Recorder_ReID.Stop();
+        Logger("PSE Process time (millisecond):" + Recorder_ReID.GetDurationString());
+
+        //add positive example
+        if( regions.size() == 1 && regions.size() == 1)
+        {
+            reid.AddSample(ReID_features[0], 0);        //assume id==0 is the target
+            SampleCollector.AddSample(ReID_features[0], 0);
+            Logger("SampleCollector sample number: " + to_string(reid.GetSampleNumber()));
+        }
+/*        else if(regions.size() > 1 && reid.HaveSufficientSamples())
+        {
+            //evaluate ReID feature similarity
+            vector<int> index_vector = reid.SortByFeatureSimilarity(ReID_features);
+
+            //re-arrange the order of poses
+            int index_of_most_similar_region = index_vector[0];
+            int index_of_most_similar_pose = regions[index_of_most_similar_region].index_in_poses;
+            HumanPose selected_pose = poses[index_of_most_similar_pose];
+            poses.erase(poses.begin()+index_of_most_similar_pose);
+            poses.insert(poses.begin(), selected_pose);
+        }
+*/
+        if( file_idx == 100)
+        {
+            SampleCollector.AddSample(ReID_features[0], 1);     //still me
+            SampleCollector.AddSample(ReID_features[0], 2);     //false positive
+            SampleCollector.DumpSamples(output_directory + "DumpedSamples.csv");
+            return;
+        }
+/*
+        if( reid.GetSampleNumber() == 100 )
+        {
+            reid.DumpSamples(output_directory + "DumpedSamples.csv");
+            return;
+        }
+*/
+        renderHumanPose(poses, displayImage);
+        for( unsigned int pose_idx = 0 ; pose_idx < poses.size(); pose_idx++ )
+        {
+            Rect region = GetPoseRegion(poses[pose_idx]);
+            Scalar color;
+            if( pose_idx == 0)
+                color = Scalar( 0, 255, 0 );
+            else
+                color = Scalar( 0, 0, 255 );        //Red, the channel order is BGR
+            rectangle( displayImage,region.tl(), region.br(), color, 2, 8, 0 );
+            string label;
+            if(poses[pose_idx].keypoints[1].x != -1)
+                label = "with center";
+            else
+                label = "w/o center";
+
+            putText(displayImage, 
+                label,
+                region.tl(), // Coordinates
+                cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
+                1.0, // Scale. 2.0 = 2x bigger
+                color, // BGR Color
+                1 // Line Thickness (Optional)
+                ); // Anti-alias (Optional)
+        }
+
+        if( bShowRenderedImage )
+        {
+            imshow("opencv result", displayImage);
+            waitKey(1);
+        }
+        imwrite(output_directory + "/" + filename, displayImage);
+    }
+}
+
+void convert_regions_to_features(string pose_model, 
+    bool bShowRenderedImage, 
+    bool bSaveTransmittedImage, 
+    string image_directory, 
+    double midPointsScoreThreshold,
+    PSE id_feature_generator,
+    string output_directory,
+    vector<string> file_list)
+{
+    HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
+    unique_ptr<Session> psession;
+    psession.reset(NewSession(SessionOptions()));
+    Status session_create_status = psession->Create(id_feature_generator.graph_def);
+    if (!session_create_status.ok())
+    {
+        Logger("Session creation fail.");
+    }
+
+    ReID SampleCollector;
+
+    for(unsigned int file_idx = 0 ; file_idx < file_list.size() ; file_idx++ )
+    {
+        string filename = file_list[file_idx];
+        Mat inputImage;
+        inputImage = imread(save_to_directory + "/" + filename);
+
+        vector<HumanPose> poses = estimator.estimate(inputImage );
+
+        vector<PoseRegion> regions = CropRegionsFromPoses(inputImage, poses);
+        string rawfilename = RemoveFileExtension(filename);
+
+        vector<array<float,1536>> ReID_features = ConvertPoseRegionsToReIDFeatures(regions, id_feature_generator, psession);
+
+        //Collect Samples
+        if( regions.size() == 1 && regions.size() == 1)
+        {
+            SampleCollector.AddSample(ReID_features[0], 0);
+        }
+    }
+    SampleCollector.DumpSamples(output_directory + "/SamplesFeatures.csv");
+}

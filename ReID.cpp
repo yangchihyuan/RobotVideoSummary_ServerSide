@@ -2,15 +2,20 @@
 #include "utility_compute.hpp"
 #include <algorithm>  //for min_element
 #include <limits>
+#include <fstream>      // std::ofstream
 
 feature_id_pair::feature_id_pair(array<float,1536> input_feature, int input_id)
 : feature(input_feature),
 id(input_id)
 {}
 
-
 ReID::ReID()
-:sample_number_limitation(100)
+:sample_number_limitation(numeric_limits<unsigned int>::max())
+{   
+}
+
+ReID::ReID(unsigned int sample_number_limitation)
+:sample_number_limitation(sample_number_limitation)
 {
     
 }
@@ -53,5 +58,29 @@ vector<int> ReID::SortByFeatureSimilarity(vector<array<float, 1536>> features)
     return SortIndex(minimal_norm_vector, false);
 }
 
+void ReID::DumpSamples(string file_path)
+{
+    ofstream outfile(file_path,ofstream::out);
+    for(unsigned int i = 0 ; i < pairs.size(); i++)
+    {  
+        outfile << i+1 << ",";
+        outfile << pairs[i].id;
+        array<float, 1536> feature = pairs[i].feature;
+        for( unsigned int j=0; j<1536; j++)
+        {
+            outfile << "," << feature[j];
+        }
+        outfile << endl;
+    }
+    outfile.close();
+}
 
 
+void ReID::LoadSampleFeature(vector<array<float,1536>> input_vector)
+{
+    for(unsigned int i=0; i<input_vector.size(); i++)
+    {
+        feature_id_pair pair(input_vector[i], 0);
+        pairs.push_back(pair);
+    }
+}

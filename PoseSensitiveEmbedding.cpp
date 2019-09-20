@@ -37,14 +37,11 @@ array<float, 1536> PSE::ComputePSN_Feature(Tensor& InputTensor, unique_ptr<Sessi
         Logger(run_status.ToString());
     }
 
-//    Logger("outputs size: " + to_string(outputs.size()));
     array<float, 1536> result;
 
     if( outputs.size() > 0)
     {
         //shape: 16 1 1 1536
-//        vector<int> tensor_shape = get_tensor_shape(outputs[0]);
-//        Logger(to_string(tensor_shape[0]) + " " + to_string(tensor_shape[1]) + " "+ to_string(tensor_shape[2]) + " "+ to_string(tensor_shape[3]) + " ");
         auto output_tensor_mapped = outputs[0].tensor<float, 4>();      //the output tensor is 4 dim, check the shape.
         for (int i = 0; i < 1536; i++)
         {

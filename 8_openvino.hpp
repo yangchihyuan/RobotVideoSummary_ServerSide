@@ -23,3 +23,7 @@ DEFINE_double(midPointsScoreThreshold, 0.5, "");
 
 //Tensorflow parameters
 DEFINE_string(graph_path, "/4t/yangchihyuan/pose-tensorflow-cpp/PSN.pb","path to the PSE model file (pb)");
+DEFINE_string(filelist_example, "","path to the PSE model file (pb)");
+DEFINE_string(filelist_path, "/4t/yangchihyuan/TransmittedImages/0918_filelist.txt","");
+DEFINE_string(mode, "" , "server_side_program or offline_test or render_poses_crop_regions");
+DEFINE_string(subject_name, "" , "");

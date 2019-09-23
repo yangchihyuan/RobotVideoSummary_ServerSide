@@ -2,6 +2,7 @@
 #include "Pose.hpp"
 #include "PoseSensitiveEmbedding.hpp"
 
+
 using namespace InferenceEngine;
 using namespace std;
 
@@ -10,7 +11,8 @@ void process_image(string pose_model,
     bool bSaveTransmittedImage, 
     string save_to_directory, 
     double midPointsScoreThreshold,
-    PSE id_feature_generator);
+    PSE id_feature_generator,
+    string subject_name);
 
 void process_image_offline(string pose_model, 
     bool bShowRenderedImage, 
@@ -18,8 +20,21 @@ void process_image_offline(string pose_model,
     string save_to_directory, 
     double midPointsScoreThreshold,
     PSE id_feature_generator,
-    string output_directory,
+    vector<string> file_list,
+    string subject_name);
+
+void render_poses_crop_regions(string pose_model, 
+    string save_to_directory, 
+    double midPointsScoreThreshold,
     vector<string> file_list);
+
+void dump_example_features(string pose_model, 
+    string save_to_directory, 
+    double midPointsScoreThreshold,
+    PSE id_feature_generator,
+    vector<string> filelist_example,
+    string subject_name);
+
 
 void convert_regions_to_features(string pose_model, 
     bool bShowRenderedImage, 

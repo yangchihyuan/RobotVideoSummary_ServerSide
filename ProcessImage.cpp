@@ -1,8 +1,8 @@
 #include <fstream>
 #include <mutex>
 #include <thread>
-#include "human_pose_estimator.hpp"
-#include "render_human_pose.hpp"
+#include "include/human_pose_estimator.hpp"
+#include "include/render_human_pose.hpp"
 
 #include "ProcessImage.hpp"
 #include <vector>
@@ -15,8 +15,7 @@
 #include "ReID.hpp"
 #include "utility_directory.hpp"
 #include "utility_string.hpp"
-//#include <opencv2/imgproc/imgproc_c.h>  //for cv::CV_AA
-//#include <opencv2/opencv.hpp>
+#include "utility_csv.hpp"
 
 using namespace human_pose_estimation;
 using namespace cv;
@@ -65,7 +64,8 @@ void process_image(std::string pose_model,
     bool bSaveTransmittedImage, 
     string save_to_directory, 
     double midPointsScoreThreshold,
-    PSE id_feature_generator)
+    PSE id_feature_generator,
+    string subject_name)
 {
     HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
     unique_ptr<Session> psession;
@@ -76,6 +76,11 @@ void process_image(std::string pose_model,
         Logger("Session creation fail.");
     }
     ReID reid(100);
+    string features_directory = save_to_directory + "/features";
+    vector<array<float,1536>> features = read_features(features_directory + "/" + subject_name + ".csv");
+    reid.LoadSampleFeature(features);
+
+    string raw_images_directory = save_to_directory + "/raw_images";
 
     while(true)
     {
@@ -98,49 +103,32 @@ void process_image(std::string pose_model,
  
             ImageAnalyzedResults::ReportData report_data;
             report_data.set_key(data_, key_length);
-            std::vector<char> JPEG_Data(data_ + key_info.length() + str_JPEG_length.length() + 2, data_ + length -1);
+            vector<char> JPEG_Data(data_ + key_info.length() + str_JPEG_length.length() + 2, data_ + length -1);
             bool bCorrectlyDecoded = false;
-            cv::Mat inputImage;
+            Mat inputImage;
             try{
-                inputImage = cv::imdecode(JPEG_Data, cv::IMREAD_COLOR); //check this result. The image may be corrupt.
+                inputImage = imdecode(JPEG_Data, IMREAD_COLOR); //check this result. The image may be corrupt.
                 if( inputImage.data )
                     bCorrectlyDecoded = true;
             }
-            catch(std::exception &e)
+            catch(exception &e)
             {
-                std::cout << "Received JPEG frame are corrupt although the signature is correct." << std::endl;
+                cout << "Received JPEG frame are corrupt although the signature is correct." << std::endl;
             }
             if( bCorrectlyDecoded)
             {
                 if(bSaveTransmittedImage)
                 {
-                    std::string filename = save_to_directory + "/" + str_timestamp + ".jpg";
+                    string filename = raw_images_directory + "/" + str_timestamp + ".jpg";
                     save_image_JPEG(data_ + key_info.length() + str_JPEG_length.length() + 2, JPEG_length , filename);
                 }
 
-                cv::Mat displayImage = inputImage.clone();
-
-                //std::thread thread_yolo(yolo_detect, inputImage, &body_coord);
-                //std::thread thread_charades_squeezenet(action_recognition_charades_webcam,inputImage, &body_coord);
-                TimeRecorder Recorder_OpenVINO_estimator;
-                std::vector<HumanPose> poses = estimator.estimate(inputImage );
-                Recorder_OpenVINO_estimator.Stop();
-                Logger("OpenVINO pose estimator time (millisecond):" + Recorder_OpenVINO_estimator.GetDurationString());
-
-                //ReID feature computation
-                TimeRecorder Recorder_ReID;
+                Mat displayImage = inputImage.clone();
+                vector<HumanPose> poses = estimator.estimate(inputImage );
                 vector<PoseRegion> regions = CropRegionsFromPoses(inputImage, poses);
                 vector<array<float,1536>> ReID_features = ConvertPoseRegionsToReIDFeatures(regions, id_feature_generator, psession);
-                Recorder_ReID.Stop();
-                Logger("PSE Process time (millisecond):" + Recorder_ReID.GetDurationString());
 
-                //add positive example
-                if( regions.size() == 1 && regions.size() == 1)
-                {
-                    reid.AddSample(ReID_features[0], 0);        //assume id==0 is the target
-                    Logger("reid sample number: " + to_string(reid.GetSampleNumber()));
-                }
-                else if(regions.size() > 1 && reid.HaveSufficientSamples())
+                if(regions.size() > 1)
                 {
                     //evaluate ReID feature similarity
                     vector<int> index_vector = reid.SortByFeatureSimilarity(ReID_features);
@@ -152,38 +140,26 @@ void process_image(std::string pose_model,
                     poses.erase(poses.begin()+index_of_most_similar_pose);
                     poses.insert(poses.begin(), selected_pose);
                 }
-/*                
-                Logger("number of samples: " + to_string(reid.GetSampleNumber()));
-                Logger("index_vector");
-                for(unsigned int i = 0 ; i<index_vector.size() ; i++)
-                {
-                    Logger(to_string(index_vector[i]));
-                }
-*/
-                
-                //Sort OpenVINO's openpose results by the distance between neck to nose, eyes, and ears
-                //compute the distnaces
-//                vector<int> index_vector = SortPosesByNeckToNose(poses);
 
                 //Convert openpose results to our own format
                 report_data.set_openpose_cnt(poses.size());
                 for( unsigned int idx = 0; idx < poses.size(); idx++ )
                 {
                     HumanPose pose = poses[idx];
-                    std::string temp;
+                    string temp;
                     for( auto keypoint : pose.keypoints)
                     {
                         if(keypoint.x == -1 && keypoint.y == -1)
                         {
-                            temp += std::to_string(0.0f) + " ";
-                            temp += std::to_string(0.0f) + " ";
-                            temp += std::to_string(0.0f) + " " + '\n';
+                            temp += to_string(0.0f) + " ";
+                            temp += to_string(0.0f) + " ";
+                            temp += to_string(0.0f) + " " + '\n';
                         }
                         else
                         {
-                            temp += std::to_string(keypoint.x) + " ";
-                            temp += std::to_string(keypoint.y) + " ";
-                            temp += std::to_string(1.0f) + " " + '\n';
+                            temp += to_string(keypoint.x) + " ";
+                            temp += to_string(keypoint.y) + " ";
+                            temp += to_string(1.0f) + " " + '\n';
                         }
                     }
                     report_data.add_openpose_coord(temp);
@@ -194,12 +170,9 @@ void process_image(std::string pose_model,
                 if( bShowRenderedImage )
                 {
                     renderHumanPose(poses, displayImage);
-                    cv::imshow("opencv result", displayImage);
-                    cv::waitKey(1);
+                    imshow("opencv result", displayImage);
+                    waitKey(1);
                 }
-
-                renderHumanPose(poses, displayImage);
-//                SaveSamples(save_to_directory, str_timestamp, regions, displayImage);
 
                 status_frame_buffer1 = 0;
                 gMutex_send_results.unlock();
@@ -343,92 +316,35 @@ void yolo_detect(cv::Mat img_raw, ImageAnalyzedResults::ReportData *body_coord)
 }
 */
 
-void process_image_offline(string pose_model, 
-    bool bShowRenderedImage, 
-    bool bSaveTransmittedImage, 
+void render_poses_crop_regions(string pose_model, 
     string save_to_directory, 
     double midPointsScoreThreshold,
-    PSE id_feature_generator,
-    string output_directory,
     vector<string> file_list)
 {
     HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
-    unique_ptr<Session> psession;
-    psession.reset(NewSession(SessionOptions()));
-    Status session_create_status = psession->Create(id_feature_generator.graph_def);
-    if (!session_create_status.ok())
-    {
-        Logger("Session creation fail.");
-    }
-    ReID reid(100);
-    ReID SampleCollector(102);
-    string output_directory_region = output_directory + "_region";
+    string regions_directory = save_to_directory + "/regions";
+    CreateDirectory(regions_directory);
+    string raw_images_directory = save_to_directory + "/raw_images";
+    string rendered_images_directory = save_to_directory + "/rendered_images";
+    CreateDirectory(rendered_images_directory);
 
-    //list all files in the save_to_directory
-    //vector<string> file_list = ListFiles_Sorted(save_to_directory, "jpg");
     for(unsigned int file_idx = 0 ; file_idx < file_list.size() ; file_idx++ )
     {
         string filename = file_list[file_idx];
-        ImageAnalyzedResults::ReportData report_data;
-        report_data.set_key(filename);
-        Mat inputImage;
-        inputImage = imread(save_to_directory + "/" + filename);
+        cout << file_idx << " " << filename << endl;
+        Mat inputImage = imread(raw_images_directory + "/" + filename);
 
         Mat displayImage = inputImage.clone();
 
-        TimeRecorder Recorder_OpenVINO_estimator;
         vector<HumanPose> poses = estimator.estimate(inputImage );
-        Recorder_OpenVINO_estimator.Stop();
-        Logger("OpenVINO pose estimator time (millisecond):" + Recorder_OpenVINO_estimator.GetDurationString());
 
-        //ReID feature computation
-        TimeRecorder Recorder_ReID;
         vector<PoseRegion> regions = CropRegionsFromPoses(inputImage, poses);
-        //I have to dump regions to create ground truth labels
         string rawfilename = RemoveFileExtension(filename);
         for(unsigned int i=0; i<regions.size(); i++)
         {
-            imwrite(output_directory_region + "/" + rawfilename + "_" + to_string(i) + ".jpg", regions[i].mat);
+            imwrite(regions_directory + "/" + rawfilename + "_" + to_string(i) + ".jpg", regions[i].mat);
         }
 
-        vector<array<float,1536>> ReID_features = ConvertPoseRegionsToReIDFeatures(regions, id_feature_generator, psession);
-        Recorder_ReID.Stop();
-        Logger("PSE Process time (millisecond):" + Recorder_ReID.GetDurationString());
-
-        //add positive example
-        if( regions.size() == 1 && regions.size() == 1)
-        {
-            reid.AddSample(ReID_features[0], 0);        //assume id==0 is the target
-            SampleCollector.AddSample(ReID_features[0], 0);
-            Logger("SampleCollector sample number: " + to_string(reid.GetSampleNumber()));
-        }
-/*        else if(regions.size() > 1 && reid.HaveSufficientSamples())
-        {
-            //evaluate ReID feature similarity
-            vector<int> index_vector = reid.SortByFeatureSimilarity(ReID_features);
-
-            //re-arrange the order of poses
-            int index_of_most_similar_region = index_vector[0];
-            int index_of_most_similar_pose = regions[index_of_most_similar_region].index_in_poses;
-            HumanPose selected_pose = poses[index_of_most_similar_pose];
-            poses.erase(poses.begin()+index_of_most_similar_pose);
-            poses.insert(poses.begin(), selected_pose);
-        }
-*/
-        if( file_idx == 100)
-        {
-            SampleCollector.AddSample(ReID_features[0], 1);     //still me
-            SampleCollector.AddSample(ReID_features[0], 2);     //false positive
-            SampleCollector.DumpSamples(output_directory + "DumpedSamples.csv");
-            return;
-        }
-/*
-        if( reid.GetSampleNumber() == 100 )
-        {
-            reid.DumpSamples(output_directory + "DumpedSamples.csv");
-            return;
-        }
-*/
         renderHumanPose(poses, displayImage);
         for( unsigned int pose_idx = 0 ; pose_idx < poses.size(); pose_idx++ )
         {
@@ -455,14 +371,102 @@ void process_image_offline(string pose_model,
                 ); // Anti-alias (Optional)
         }
 
-        if( bShowRenderedImage )
-        {
-            imshow("opencv result", displayImage);
-            waitKey(1);
-        }
-        imwrite(output_directory + "/" + filename, displayImage);
+        imwrite(rendered_images_directory + "/" + filename, displayImage);
     }
 }
+
+void dump_example_features(string pose_model, 
+    string save_to_directory, 
+    double midPointsScoreThreshold,
+    PSE id_feature_generator,
+    vector<string> filelist_example,
+    string subject_name)
+{
+    HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
+    unique_ptr<Session> psession;
+    psession.reset(NewSession(SessionOptions()));
+    Status session_create_status = psession->Create(id_feature_generator.graph_def);
+    if (!session_create_status.ok())
+    {
+        Logger("Session creation fail.");
+    }
+    ReID reid(100);
+    string raw_images_directory = save_to_directory + "/raw_images";
+    string features_directory = save_to_directory + "/features";
+    CreateDirectory(features_directory);
+
+    for(unsigned int file_idx = 0 ; file_idx < filelist_example.size() ; file_idx++ )
+    {
+        cout << "Load example image " << file_idx << endl;
+        string filename = filelist_example[file_idx];
+        Mat inputImage = imread(raw_images_directory + "/" + filename);
+        vector<HumanPose> poses = estimator.estimate(inputImage );
+        vector<PoseRegion> regions = CropRegionsFromPoses(inputImage, poses);
+        vector<array<float,1536>> ReID_features = ConvertPoseRegionsToReIDFeatures(regions, id_feature_generator, psession);
+        reid.AddSample(ReID_features[0], 0);        //assume id==0 is the target
+    }
+    reid.DumpSamples(features_directory + "/" + subject_name + ".csv");
+}
+
+void process_image_offline(string pose_model, 
+    bool bShowRenderedImage, 
+    bool bSaveTransmittedImage, 
+    string save_to_directory, 
+    double midPointsScoreThreshold,
+    PSE id_feature_generator,
+    vector<string> file_list,
+    string subject_name)
+{
+    HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
+    unique_ptr<Session> psession;
+    psession.reset(NewSession(SessionOptions()));
+    Status session_create_status = psession->Create(id_feature_generator.graph_def);
+    if (!session_create_status.ok())
+    {
+        Logger("Session creation fail.");
+    }
+    ReID reid(100);
+    string regions_directory = save_to_directory + "/regions";
+    CreateDirectory(regions_directory);
+    string raw_images_directory = save_to_directory + "/raw_images";
+    string rendered_images_directory = save_to_directory + "/rendered_images";
+    string test_directory = save_to_directory + "/test";
+    CreateDirectory(test_directory);
+    string features_directory = save_to_directory + "/features";
+
+    vector<array<float,1536>> features = read_features(features_directory + "/" + subject_name + ".csv");
+    reid.LoadSampleFeature(features);
+
+    for(unsigned int file_idx = 0 ; file_idx < file_list.size() ; file_idx++ )
+    {
+        string filename = file_list[file_idx];
+        Mat inputImage = imread(raw_images_directory + "/" + filename);
+
+        Mat displayImage = inputImage.clone();
+
+        vector<HumanPose> poses = estimator.estimate(inputImage );
+        vector<PoseRegion> regions = CropRegionsFromPoses(inputImage, poses);
+        //I have to dump regions to create ground truth labels
+        string rawfilename = RemoveFileExtension(filename);
+
+        vector<array<float,1536>> ReID_features = ConvertPoseRegionsToReIDFeatures(regions, id_feature_generator, psession);
+
+        
+        //evaluate ReID feature similarity
+        if( regions.size() > 1)
+        {
+            vector<int> index_vector = reid.SortByFeatureSimilarity(ReID_features);
+
+            //dump images for research
+            for(unsigned int i=0; i<index_vector.size(); i++)
+            {
+                int index_region = index_vector[i];
+                imwrite(test_directory + "/" + rawfilename + "_" + to_string(i) + ".jpg", regions[index_region].mat);
+            }
+        }
+    }
+}
+
 
 void convert_regions_to_features(string pose_model, 
     bool bShowRenderedImage, 

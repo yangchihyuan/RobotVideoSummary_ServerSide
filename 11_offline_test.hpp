@@ -15,7 +15,7 @@ DEFINE_string(detect_model, "", "object detection model");
 
 DEFINE_bool(ShowRenderedImage, false, "If enabled, it will show the rendered skeleton, but it will inrease the network load.");
 DEFINE_bool(SaveTransmittedImage, false, "If enabled, it will save the transmitted image into the disk.");
-DEFINE_string(save_to_directory, "/4t/yangchihyuan/TransmittedImages/temp","directory of transmitted JPEG frames");
+DEFINE_string(save_to_directory, "/4t/yangchihyuan/TransmittedImages/0923","directory of transmitted JPEG frames");
 DEFINE_string(output_directory, "/4t/yangchihyuan/TransmittedImages/0918_offline_test_output","directory of rendered images");
 DEFINE_uint64(port_number, 8895, "Port number to received HTTP packages");
 

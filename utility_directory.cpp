@@ -92,18 +92,40 @@ vector<string> ListFiles_Sorted(const string& directory, const string& file_exte
     return file_list;
 }
 
+//recursive mkdir
+static void _mkdir(const char *dir) {
+        char tmp[256];
+        char *p = NULL;
+        size_t len;
+
+        snprintf(tmp, sizeof(tmp),"%s",dir);
+        len = strlen(tmp);
+        if(tmp[len - 1] == '/')
+                tmp[len - 1] = 0;
+        for(p = tmp + 1; *p; p++)
+                if(*p == '/') {
+                        *p = 0;
+                        mkdir(tmp, S_IRWXU);
+                        *p = '/';
+                }
+        mkdir(tmp, S_IRWXU);
+}
 
 void CreateDirectory(const string& directory)
 {
-    DIR* dir = opendir(directory.c_str() );
+    _mkdir(directory.c_str());
+/*
+    DIR* dir = opendir();
     if (dir)
     {
-        /* Directory exists. */
+        // Directory exists. 
         closedir(dir);
     }
     else if (ENOENT == errno)
     {
-        /* Directory does not exist. */
+        /// Directory does not exist.
         mkdir(directory.c_str(), S_IRWXU|S_IRWXG);
     }
+*/
 }
+

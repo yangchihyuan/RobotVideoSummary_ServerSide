@@ -10,6 +10,7 @@ This project is modified from the sample project human_pose_estimation_demo of I
 - cudnn 7.6.3
 - libprotobuf-dev 3.8.0
 - protobuf-compiler 3.8.0
+- [cnpy](https://github.com/rogersce/cnpy)
 
 # Installation
 - clone this repository to OpenVINO's sample directory. For example, mine is ~/intel/openvino/deployment_tools/open_model_zoo/demos because I did not use sudo to install OpenVINO. If you use sudo, the directory is likely to be /opt/intel/openvino/deployment_tools/open_model_zoo/demos. 

@@ -65,22 +65,29 @@ void process_image(std::string pose_model,
     string save_to_directory, 
     double midPointsScoreThreshold,
     PSE id_feature_generator,
-    string subject_name)
+    string subject_name,
+    bool b_enable_reid)
 {
     HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
     unique_ptr<Session> psession;
-    psession.reset(NewSession(SessionOptions()));
-    Status session_create_status = psession->Create(id_feature_generator.graph_def);
-    if (!session_create_status.ok())
-    {
-        Logger("Session creation fail.");
-    }
     ReID reid(100);
-    string features_directory = save_to_directory + "/features";
-    vector<array<float,1536>> features = read_features(features_directory + "/" + subject_name + ".csv");
-    reid.LoadSampleFeature(features);
-
+    if( b_enable_reid)
+    {
+        psession.reset(NewSession(SessionOptions()));
+        Status session_create_status = psession->Create(id_feature_generator.graph_def);
+        if (!session_create_status.ok())
+        {
+            Logger("Session creation fail.");
+        }
+//        ReID reid(100);
+        string features_directory = save_to_directory + "/features";
+        vector<array<float,1536>> features = read_features(features_directory + "/" + subject_name + ".csv");
+        reid.LoadSampleFeature(features);
+    }
     string raw_images_directory = save_to_directory + "/raw_images";
+    if(bSaveTransmittedImage)
+        CreateDirectory(raw_images_directory);
+
 
     while(true)
     {
@@ -125,20 +132,23 @@ void process_image(std::string pose_model,
 
                 Mat displayImage = inputImage.clone();
                 vector<HumanPose> poses = estimator.estimate(inputImage );
-                vector<PoseRegion> regions = CropRegionsFromPoses(inputImage, poses);
-                vector<array<float,1536>> ReID_features = ConvertPoseRegionsToReIDFeatures(regions, id_feature_generator, psession);
-
-                if(regions.size() > 1)
+                if( b_enable_reid)
                 {
-                    //evaluate ReID feature similarity
-                    vector<int> index_vector = reid.SortByFeatureSimilarity(ReID_features);
+                    vector<PoseRegion> regions = CropRegionsFromPoses(inputImage, poses);
+                    vector<array<float,1536>> ReID_features = ConvertPoseRegionsToReIDFeatures(regions, id_feature_generator, psession);
 
-                    //re-arrange the order of poses
-                    int index_of_most_similar_region = index_vector[0];
-                    int index_of_most_similar_pose = regions[index_of_most_similar_region].index_in_poses;
-                    HumanPose selected_pose = poses[index_of_most_similar_pose];
-                    poses.erase(poses.begin()+index_of_most_similar_pose);
-                    poses.insert(poses.begin(), selected_pose);
+                    if(regions.size() > 1)
+                    {
+                        //evaluate ReID feature similarity
+                        vector<int> index_vector = reid.SortByFeatureSimilarity(ReID_features);
+
+                        //re-arrange the order of poses
+                        int index_of_most_similar_region = index_vector[0];
+                        int index_of_most_similar_pose = regions[index_of_most_similar_region].index_in_poses;
+                        HumanPose selected_pose = poses[index_of_most_similar_pose];
+                        poses.erase(poses.begin()+index_of_most_similar_pose);
+                        poses.insert(poses.begin(), selected_pose);
+                    }
                 }
 
                 //Convert openpose results to our own format

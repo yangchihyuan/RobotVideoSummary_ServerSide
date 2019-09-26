@@ -10,12 +10,6 @@ PSE::PSE(const string& input_path)
     output_layer("resnet_v1_50/pre_logits/convolution")
 
 {
-/*    Status load_graph_status = LoadGraph(graph_path, &tf_session);
-    if (!load_graph_status.ok())
-    {
-        LOG(ERROR) << load_graph_status;
-    }
-*/    
     Status load_graph_status =
         ReadBinaryProto(Env::Default(), graph_file_path, &graph_def);
     if (!load_graph_status.ok())

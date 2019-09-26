@@ -73,7 +73,8 @@ int main(int argc, char* argv[]) {
                 FLAGS_save_to_directory,
                 (float)FLAGS_midPointsScoreThreshold,
                 id_feature_generator,
-                FLAGS_subject_name
+                FLAGS_subject_name,
+                true
             );
     //        std::thread thread_save_buffer_as_JPEG(process_save_frame_buffer_as_JPEG_images, FLAGS_SaveTransmittedImage, FLAGS_save_to_directory);
 
@@ -82,6 +83,28 @@ int main(int argc, char* argv[]) {
             thread_image_process.join();
 //        thread_save_buffer_as_JPEG.join();
         }
+        else if(FLAGS_mode.compare("server_side_program_no_reid") == 0 )
+        {
+            std::thread thread_receive_frame(receive_socket, FLAGS_port_number);
+            std::thread thread_report_results(report_results, FLAGS_port_number+1);     //another thread to send back results.
+            std::thread thread_image_process(process_image, 
+                FLAGS_pose_model, 
+                FLAGS_ShowRenderedImage, 
+                FLAGS_SaveTransmittedImage, 
+                FLAGS_save_to_directory,
+                (float)FLAGS_midPointsScoreThreshold,
+                id_feature_generator,
+                FLAGS_subject_name,
+                false
+            );
+    //        std::thread thread_save_buffer_as_JPEG(process_save_frame_buffer_as_JPEG_images, FLAGS_SaveTransmittedImage, FLAGS_save_to_directory);
+
+            thread_receive_frame.join();
+            thread_report_results.join();
+            thread_image_process.join();
+//        thread_save_buffer_as_JPEG.join();
+        }
+
         else if(FLAGS_mode.compare("render_poses_crop_regions") == 0)
         {
             vector<string> filename_vector = LoadFileList(FLAGS_filelist_path);

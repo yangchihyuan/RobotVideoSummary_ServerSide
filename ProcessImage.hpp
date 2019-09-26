@@ -12,7 +12,8 @@ void process_image(string pose_model,
     string save_to_directory, 
     double midPointsScoreThreshold,
     PSE id_feature_generator,
-    string subject_name);
+    string subject_name,
+    bool b_enable_reid);
 
 void process_image_offline(string pose_model, 
     bool bShowRenderedImage, 

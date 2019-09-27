@@ -8,6 +8,7 @@ This project is modified from the sample project human_pose_estimation_demo of I
 - libboost-dev 1.58
 - libboost-system-dev 1.58
 - tensorflow_CC 1.14
+- bazel 0.24.1
 - cuda 10.0
 - cudnn 7.6.3
 - libprotobuf-dev 3.8.0

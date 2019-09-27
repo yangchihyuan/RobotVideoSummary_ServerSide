@@ -3,6 +3,7 @@ This project is modified from the sample project human_pose_estimation_demo of I
 # Environment Setting
 - Ubuntu 16.04
 - python 3.5.2
+- python3-pip
 - Intel OpenVINO toolkit 2019 R2
 - libboost-dev 1.58
 - libboost-system-dev 1.58

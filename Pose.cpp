@@ -255,6 +255,29 @@ vector<int> SortPosesByNeckToNose(const vector<HumanPose>& poses)
     */
 }
 
+//Sort OpenVINO's openpose results by the distance between neck to nose, eyes, and ears
+vector<HumanPose> SortPosesByHeight(const vector<HumanPose>& poses)
+{
+    //compute the distnaces
+    vector<float> distances(poses.size(),0);
+    for( unsigned int idx = 0; idx < poses.size(); idx++ )
+    {
+        HumanPose pose = poses.at(idx);
+        Rect region = GetPoseRegion(pose);
+        distances[idx] = region.height;
+    }
+
+    //get sorted indexes, the larger distance, the smaller the index
+    vector<int> index_order = SortIndex(distances, true);
+    vector<HumanPose> result;
+    for( unsigned int idx = 0; idx < poses.size(); idx++ )
+    {
+        result.push_back(poses.at(index_order.at(idx)));
+    }
+    return result;
+}
+
+
 vector<array<float, 1536>> ConvertPoseRegionsToReIDFeatures(
     const vector<PoseRegion>& pairs, 
     PSE& id_feature_generator,

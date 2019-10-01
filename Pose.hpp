@@ -23,6 +23,9 @@ int ConvertPoseToTensor(const HumanPose& pose, tensorflow::Tensor &Tensor);
 vector<PoseRegion> CropRegionsFromPoses(const cv::Mat& inputImage, const vector<HumanPose>& poese);
 cv::Rect GetPoseRegion(const HumanPose& pose);
 vector<int> SortPosesByNeckToNose(const vector<HumanPose>& poses);
+
+vector<HumanPose> SortPosesByHeight(const vector<HumanPose>& poses);
+
 vector<array<float,1536>> ConvertPoseRegionsToReIDFeatures(
     const vector<PoseRegion>& pairs, 
     PSE& id_feature_generator,

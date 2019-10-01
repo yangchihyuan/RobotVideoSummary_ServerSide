@@ -79,7 +79,6 @@ void process_image(std::string pose_model,
         {
             Logger("Session creation fail.");
         }
-//        ReID reid(100);
         string features_directory = save_to_directory + "/features";
         vector<array<float,1536>> features = read_features(features_directory + "/" + subject_name + ".csv");
         reid.LoadSampleFeature(features);
@@ -150,6 +149,11 @@ void process_image(std::string pose_model,
                         poses.insert(poses.begin(), selected_pose);
                     }
                 }
+                else
+                {
+                    poses = SortPosesByHeight(poses);
+                }
+                
 
                 //Convert openpose results to our own format
                 report_data.set_openpose_cnt(poses.size());

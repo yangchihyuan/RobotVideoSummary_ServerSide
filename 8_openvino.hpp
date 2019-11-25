@@ -18,8 +18,7 @@ DEFINE_bool(SaveTransmittedImage, false, "If enabled, it will save the transmitt
 DEFINE_string(save_to_directory, "/4t/yangchihyuan/TransmittedImages/temp","directory of transmitted JPEG frames");
 DEFINE_uint64(port_number, 8895, "Port number to received HTTP packages");
 
-//OpenPose parameter
-DEFINE_double(midPointsScoreThreshold, 0.5, "");
+DEFINE_bool(enable_reid, false, "");
 
 //Tensorflow parameters
 DEFINE_string(graph_path, "","path to the PSE model file (pb)");

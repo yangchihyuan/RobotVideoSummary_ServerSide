@@ -30,7 +30,7 @@ void findPeaks(const std::vector<cv::Mat>& heatMaps,
                const float minPeaksDistance,
                std::vector<std::vector<Peak> >& allPeaks,
                int heatMapId) {
-    const float threshold = 0.1f;
+    const float threshold = 0.1f;           //this is a local threshold. values will be ignore if the value is less than the threshold.
     std::vector<cv::Point> peaks;
     const cv::Mat& heatMap = heatMaps[heatMapId];
     const float* heatMapData = heatMap.ptr<float>();
@@ -82,7 +82,7 @@ void findPeaks(const std::vector<cv::Mat>& heatMaps,
                     && (val > right_val)
                     && (val > top_val)
                     && (val > bottom_val)) {
-                peaks.push_back(cv::Point(x, y));
+                peaks.push_back(cv::Point(x, y));    //4-direction peak
             }
         }
     }
@@ -96,11 +96,11 @@ void findPeaks(const std::vector<cv::Mat>& heatMaps,
         if (isActualPeak[i]) {
             for (size_t j = i + 1; j < peaks.size(); j++) {
                 if (sqrt((peaks[i].x - peaks[j].x) * (peaks[i].x - peaks[j].x) +
-                         (peaks[i].y - peaks[j].y) * (peaks[i].y - peaks[j].y)) < minPeaksDistance) {
-                    isActualPeak[j] = false;
+                         (peaks[i].y - peaks[j].y) * (peaks[i].y - peaks[j].y)) < minPeaksDistance) {       //check distance
+                    isActualPeak[j] = false;        //select one, and suprress all close peaks
                 }
             }
-            peaksWithScoreAndID.push_back(Peak(peakCounter++, peaks[i], heatMap.at<float>(peaks[i])));
+            peaksWithScoreAndID.push_back(Peak(peakCounter++, peaks[i], heatMap.at<float>(peaks[i])));  //score is the heatMap value
         }
     }
 }
@@ -110,11 +110,12 @@ std::vector<HumanPose> groupPeaksToPoses(const std::vector<std::vector<Peak> >& 
                                          const size_t keypointsNumber,
                                          const float midPointsScoreThreshold,
                                          const float foundMidPointsRatioThreshold,
-                                         const int minJointsNumber,
-                                         const float minSubsetScore) {
+                                         const int minJointsNumber,     //this threshold is the minimal number of joint
+                                         const float minSubsetScore) {   //this is the overall threshold, for score
     const std::vector<std::pair<int, int> > limbIdsHeatmap = {
         {2, 3}, {2, 6}, {3, 4}, {4, 5}, {6, 7}, {7, 8}, {2, 9}, {9, 10}, {10, 11}, {2, 12}, {12, 13}, {13, 14},
         {2, 1}, {1, 15}, {15, 17}, {1, 16}, {16, 18}, {3, 17}, {6, 18}
+        //this is 1-based index. 2 means body center, 1 means nose
     };
     const std::vector<std::pair<int, int> > limbIdsPaf = {
         {31, 32}, {39, 40}, {33, 34}, {35, 36}, {41, 42}, {43, 44}, {19, 20}, {21, 22}, {23, 24}, {25, 26},
@@ -189,8 +190,8 @@ std::vector<HumanPose> groupPeaksToPoses(const std::vector<std::vector<Peak> >& 
                     continue;
                 }
                 vec /= norm_vec;
-                float score = vec.x * scoreMid.first.at<float>(mid) + vec.y * scoreMid.second.at<float>(mid);
-                int height_n  = pafs[0].rows / 2;
+                float score = vec.x * scoreMid.first.at<float>(mid) + vec.y * scoreMid.second.at<float>(mid);   //inner product
+                int height_n  = pafs[0].rows / 2;       //why /2?
                 float suc_ratio = 0.0f;
                 float mid_score = 0.0f;
                 const int mid_num = 10;
@@ -198,15 +199,15 @@ std::vector<HumanPose> groupPeaksToPoses(const std::vector<std::vector<Peak> >& 
                 if (score > scoreThreshold) {
                     float p_sum = 0;
                     int p_count = 0;
-                    cv::Size2f step((candB[j].pos.x - candA[i].pos.x)/(mid_num - 1),
+                    cv::Size2f step((candB[j].pos.x - candA[i].pos.x)/(mid_num - 1),        //it test 10 points in the middle
                                     (candB[j].pos.y - candA[i].pos.y)/(mid_num - 1));
                     for (int n = 0; n < mid_num; n++) {
                         cv::Point midPoint(cvRound(candA[i].pos.x + n * step.width),
                                            cvRound(candA[i].pos.y + n * step.height));
-                        cv::Point2f pred(scoreMid.first.at<float>(midPoint),
+                        cv::Point2f pred(scoreMid.first.at<float>(midPoint),        //scoreMid is the part affirm field
                                          scoreMid.second.at<float>(midPoint));
-                        score = vec.x * pred.x + vec.y * pred.y;
-                        if (score > midPointsScoreThreshold) {
+                        score = vec.x * pred.x + vec.y * pred.y;        //vec is the normalized vector from one peak to another
+                        if (score > midPointsScoreThreshold) {      //midPointScoreThreshold is used here
                             p_sum += score;
                             p_count++;
                         }

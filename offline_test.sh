@@ -3,7 +3,6 @@
 --SaveTransmittedImage=true \
 --save_to_directory=/4t/yangchihyuan/TransmittedImages/0923 \
 --ShowRenderedImage=true \
---midPointsScoreThreshold=0.5 \
 --filelist_path=/4t/yangchihyuan/TransmittedImages/0923/filelist_test.txt \
 --mode=offline_test \
 --subject_name=chihyuan

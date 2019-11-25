@@ -11,7 +11,7 @@
 using namespace InferenceEngine;
 
 void process_image(std::string pose_model, std::string detect_model, std::string extension, double threshold_t, 
-                    double threshold_iou_t, bool bShowRenderedImage, bool bSaveTransmittedImage, std::string save_to_directory, double midPointsScoreThreshold);
+                    double threshold_iou_t, bool bShowRenderedImage, bool bSaveTransmittedImage, std::string save_to_directory);
 void process_save_frame_buffer_as_JPEG_images(bool bSaveTransmittedImage, std::string save_to_directory);
 void save_image_JPEG(char* data_, std::size_t length, std::string filename);
 /*

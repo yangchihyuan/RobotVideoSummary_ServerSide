@@ -13,9 +13,12 @@
 using namespace human_pose_estimation;
 using namespace cv;
 
-int ConvertImageToPoseMaps(const string& input_dir, const vector<string>& file_list, const string& output_dir, const string& pose_model, const double midPointsScoreThreshold)
+int ConvertImageToPoseMaps(const string& input_dir, 
+                           const vector<string>& file_list, 
+                           const string& output_dir, 
+                           const string& pose_model)
 {
-    HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
+    HumanPoseEstimator estimator(pose_model, "CPU", false); //the 3rd argument is per-layer performance report
 
     //load images
     for( int i=0; i< static_cast<int>(file_list.size()); i++ )
@@ -77,9 +80,9 @@ int ConvertImageToPoseMaps(const string& input_dir, const vector<string>& file_l
     return 1;
 }
 
-int ConvertImageToPoses(const Mat& input_image, const string& pose_model, const double midPointsScoreThreshold, vector<HumanPose>& poses )
+int ConvertImageToPoses(const Mat& input_image, const string& pose_model, vector<HumanPose>& poses )
 {
-    HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
+    HumanPoseEstimator estimator(pose_model, "CPU", false); //the 3rd argument is per-layer performance report
     poses = estimator.estimate(input_image);
     return 1;
 }

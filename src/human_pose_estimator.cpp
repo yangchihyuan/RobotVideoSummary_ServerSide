@@ -18,16 +18,15 @@ const size_t HumanPoseEstimator::keypointsNumber = 18;
 
 HumanPoseEstimator::HumanPoseEstimator(const std::string& modelPath,
                                        const std::string& targetDeviceName_,
-                                       bool enablePerformanceReport,
-                                       const float midPointsScoreThreshold)
-    : minJointsNumber(3),
+                                       bool enablePerformanceReport)
+    : minJointsNumber(6),       //the number of minimal joints to return as a pose
       stride(8),
       pad(cv::Vec4i::all(0)),
       meanPixel(cv::Vec3f::all(128)),
       minPeaksDistance(3.0f),
-//      midPointsScoreThreshold(0.05f),
-      foundMidPointsRatioThreshold(0.8f),
-      minSubsetScore(0.2f),
+      midPointsScoreThreshold(0.05f),
+      foundMidPointsRatioThreshold(0.8f),   //The ratio of passed mid-point test
+      minSubsetScore(0.5f),     //overall score threshold. I should adjust this.
       inputLayerSize(-1, -1),
       upsampleRatio(4),
       targetDeviceName(targetDeviceName_),

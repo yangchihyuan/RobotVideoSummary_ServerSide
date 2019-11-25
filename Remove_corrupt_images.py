@@ -1,0 +1,49 @@
+#remove corrupt images
+import pandas as pd
+from tqdm import tqdm, trange
+import cv2
+import os
+from PIL import Image
+
+csv_file = "/4t/yangchihyuan/TransmittedImages/ShuffleNet/csv_files/good.csv"
+raw_image_directory = "/4t/yangchihyuan/TransmittedImages/ShuffleNet/raw_images"
+
+df = pd.read_csv(csv_file,dtype={'filename':str})
+number_of_rows = df.shape[0]
+print(number_of_rows)
+number_of_repeated = 0 
+list_corrupt = []
+list_good = []
+for i in range(number_of_rows):
+    bool_corrupt = False
+    file_path = os.path.join(raw_image_directory,df.iloc[i]['filename'])+".jpg"
+    print(df.iloc[i]['filename'])
+    img = cv2.imread(file_path)
+#    cv2.imshow("read file",img)
+#    cv2.waitKey(1)    
+#    image_file = tf.io.read_file(file_path)
+
+#    try:
+#        img = Image.open(file_path)
+#    except IOError:
+#        print(df.iloc[i]['filename'])
+#    try:
+#        img= np.array(img, dtype=np.float32)
+#    except :
+#        print('corrupt img',file_path)
+
+#    img_cv = cv2.imread(file_path)
+#    try:
+#    img = tf.image.decode_jpeg(image_file, channels=3)
+#        io.imread(file_path)
+#        list_good.append(i)
+#    except Exception as e:
+#        print(e)
+#        list_corrupt.append(i)
+
+#print("number_of_good",len(list_good))
+#print("number_of_corrupt",len(list_corrupt))
+
+#df_good_file = "/4t/yangchihyuan/TransmittedImages/ShuffleNet/csv_files/good2.csv"
+#df_good = df.iloc[list_good]
+#df_good.to_csv(df_good_file)

@@ -19,8 +19,7 @@ public:
 
     HumanPoseEstimator(const std::string& modelPath,
                        const std::string& targetDeviceName,
-                       bool enablePerformanceReport = false,
-                       const float midPointsScoreThreshold = 0.5f);
+                       bool enablePerformanceReport);
     std::vector<HumanPose> estimate(const cv::Mat& image);
     ~HumanPoseEstimator();
 

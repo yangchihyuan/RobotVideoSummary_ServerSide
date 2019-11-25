@@ -26,7 +26,7 @@ struct HumanPoseByPeaksIndices {
 
     std::vector<int> peaksIndices;
     int nJoints;
-    float score;
+    float score;        //How is the score computed?
 };
 
 struct TwoJointsConnection {

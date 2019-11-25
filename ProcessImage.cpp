@@ -59,16 +59,37 @@ typedef std::pair<float,int> mypair;
 bool comparator ( const mypair& l, const mypair& r)
    { return l.first < r.first; }
 
+string ConvertPoseToString(HumanPose pose)
+{
+    string temp;
+    for( auto keypoint : pose.keypoints)
+    {
+        if(keypoint.x == -1 && keypoint.y == -1)
+        {
+            temp += to_string(0.0f) + " ";
+            temp += to_string(0.0f) + " ";
+            temp += to_string(0.0f) + " " + '\n';
+        }
+        else
+        {
+            temp += to_string(keypoint.x) + " ";
+            temp += to_string(keypoint.y) + " ";
+            temp += to_string(1.0f) + " " + '\n';
+        }
+    }
+    return temp;
+}
+
+
 void process_image(std::string pose_model, 
     bool bShowRenderedImage, 
     bool bSaveTransmittedImage, 
     string save_to_directory, 
-    double midPointsScoreThreshold,
     PSE id_feature_generator,
     string subject_name,
     bool b_enable_reid)
 {
-    HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
+    HumanPoseEstimator estimator(pose_model, "CPU", false ); //the 3rd argument is per-layer performance report
     unique_ptr<Session> psession;
     ReID reid(100);
     if( b_enable_reid)
@@ -160,22 +181,7 @@ void process_image(std::string pose_model,
                 for( unsigned int idx = 0; idx < poses.size(); idx++ )
                 {
                     HumanPose pose = poses[idx];
-                    string temp;
-                    for( auto keypoint : pose.keypoints)
-                    {
-                        if(keypoint.x == -1 && keypoint.y == -1)
-                        {
-                            temp += to_string(0.0f) + " ";
-                            temp += to_string(0.0f) + " ";
-                            temp += to_string(0.0f) + " " + '\n';
-                        }
-                        else
-                        {
-                            temp += to_string(keypoint.x) + " ";
-                            temp += to_string(keypoint.y) + " ";
-                            temp += to_string(1.0f) + " " + '\n';
-                        }
-                    }
+                    string temp = ConvertPoseToString(pose);
                     report_data.add_openpose_coord(temp);
                 }
 
@@ -332,71 +338,74 @@ void yolo_detect(cv::Mat img_raw, ImageAnalyzedResults::ReportData *body_coord)
 
 void render_poses_crop_regions(string pose_model, 
     string save_to_directory, 
-    double midPointsScoreThreshold,
     vector<string> file_list)
 {
-    HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
-    string regions_directory = save_to_directory + "/regions";
-    CreateDirectory(regions_directory);
+    HumanPoseEstimator estimator(pose_model, "CPU", false ); //the 3rd argument is per-layer performance report
+//    string regions_directory = save_to_directory + "/regions";
+//    CreateDirectory(regions_directory);
     string raw_images_directory = save_to_directory + "/raw_images";
     string rendered_images_directory = save_to_directory + "/rendered_images";
     CreateDirectory(rendered_images_directory);
+    string csv_files_directory = save_to_directory + "/csv_files";
+//    CreateDirectory(bounding_boxes_directory);
+    string csv_filename = "0503_lab.csv";
+    ofstream outfile(csv_files_directory + "/" + csv_filename, ofstream::out);
+    outfile << "filename,index,x,y,width,height,label" << endl;
 
     for(unsigned int file_idx = 0 ; file_idx < file_list.size() ; file_idx++ )
     {
         string filename = file_list[file_idx];
-        cout << file_idx << " " << filename << endl;
+        cout << "\r" << file_idx << " " << filename << flush;
         Mat inputImage = imread(raw_images_directory + "/" + filename);
 
         Mat displayImage = inputImage.clone();
 
-        vector<HumanPose> poses = estimator.estimate(inputImage );
+        vector<HumanPose> poses = estimator.estimate(inputImage);
 
-        vector<PoseRegion> regions = CropRegionsFromPoses(inputImage, poses);
-        string rawfilename = RemoveFileExtension(filename);
-        for(unsigned int i=0; i<regions.size(); i++)
+        if( poses.size() > 0 )
         {
-            imwrite(regions_directory + "/" + rawfilename + "_" + to_string(i) + ".jpg", regions[i].mat);
-        }
-
-        renderHumanPose(poses, displayImage);
-        for( unsigned int pose_idx = 0 ; pose_idx < poses.size(); pose_idx++ )
-        {
-            Rect region = GetPoseRegion(poses[pose_idx]);
-            Scalar color;
-            if( pose_idx == 0)
-                color = Scalar( 0, 255, 0 );
-            else
+            string rawfilename = RemoveFileExtension(filename);
+            renderHumanPose(poses, displayImage);
+            for( unsigned int pose_idx = 0 ; pose_idx < poses.size(); pose_idx++ )
+            {
+//                string temp = ConvertPoseToString(poses[pose_idx]);
+//                cout << temp << endl;
+                Rect region = GetPoseRegion(poses[pose_idx]);
+                Scalar color;
                 color = Scalar( 0, 0, 255 );        //Red, the channel order is BGR
-            rectangle( displayImage,region.tl(), region.br(), color, 2, 8, 0 );
-            string label;
-            if(poses[pose_idx].keypoints[1].x != -1)
-                label = "with center";
-            else
-                label = "w/o center";
+                rectangle( displayImage,region.tl(), region.br(), color, 2, 8, 0 );
+                string label = to_string(pose_idx) + ":" + to_string(region.x)+ "," +to_string(region.y)+ "," + to_string(region.width) + "," +to_string( region.height);
 
-            putText(displayImage, 
-                label,
-                region.tl(), // Coordinates
-                cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
-                1.0, // Scale. 2.0 = 2x bigger
-                color, // BGR Color
-                1 // Line Thickness (Optional)
-                ); // Anti-alias (Optional)
+                putText(displayImage, 
+                    label,
+                    region.tl(), // Coordinates
+                    cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
+                    1.0, // Scale. 2.0 = 2x bigger
+                    color, // BGR Color
+                    1 // Line Thickness (Optional)
+                    ); // Anti-alias (Optional)
+
+                //save bounding boxes
+                if( region.width > 0 && region.height > 0)
+                {
+                    string filename_no_ext = RemoveFileExtension(filename);
+                    outfile << filename_no_ext << "," << pose_idx << "," << region.x << "," << region.y << "," << region.width << "," << region.height << "," << endl;
+                }
+            }
+
+            imwrite(rendered_images_directory + "/" + filename, displayImage);
         }
-
-        imwrite(rendered_images_directory + "/" + filename, displayImage);
     }
+    outfile.close();
 }
 
 void dump_example_features(string pose_model, 
     string save_to_directory, 
-    double midPointsScoreThreshold,
     PSE id_feature_generator,
     vector<string> filelist_example,
     string subject_name)
 {
-    HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
+    HumanPoseEstimator estimator(pose_model, "CPU", false); //the 3rd argument is per-layer performance report
     unique_ptr<Session> psession;
     psession.reset(NewSession(SessionOptions()));
     Status session_create_status = psession->Create(id_feature_generator.graph_def);
@@ -426,12 +435,11 @@ void process_image_offline(string pose_model,
     bool bShowRenderedImage, 
     bool bSaveTransmittedImage, 
     string save_to_directory, 
-    double midPointsScoreThreshold,
     PSE id_feature_generator,
     vector<string> file_list,
     string subject_name)
 {
-    HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
+    HumanPoseEstimator estimator(pose_model, "CPU", false); //the 3rd argument is per-layer performance report
     unique_ptr<Session> psession;
     psession.reset(NewSession(SessionOptions()));
     Status session_create_status = psession->Create(id_feature_generator.graph_def);
@@ -486,12 +494,11 @@ void convert_regions_to_features(string pose_model,
     bool bShowRenderedImage, 
     bool bSaveTransmittedImage, 
     string image_directory, 
-    double midPointsScoreThreshold,
     PSE id_feature_generator,
     string output_directory,
     vector<string> file_list)
 {
-    HumanPoseEstimator estimator(pose_model, "CPU", false, (float)midPointsScoreThreshold); //the 3rd argument is per-layer performance report
+    HumanPoseEstimator estimator(pose_model, "CPU", false); //the 3rd argument is per-layer performance report
     unique_ptr<Session> psession;
     psession.reset(NewSession(SessionOptions()));
     Status session_create_status = psession->Create(id_feature_generator.graph_def);

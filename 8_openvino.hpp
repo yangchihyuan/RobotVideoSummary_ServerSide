@@ -26,3 +26,6 @@ DEFINE_string(filelist_example, "","path to the PSE model file (pb)");
 DEFINE_string(filelist_path, "/4t/yangchihyuan/TransmittedImages/0918_filelist.txt","");
 DEFINE_string(mode, "" , "server_side_program or offline_test or render_poses_crop_regions");
 DEFINE_string(subject_name, "" , "");
+
+//Thermal camera parameters
+DEFINE_string(flir_server_ip, "" , "IP address of the FLIR thermal camera" );

@@ -2,11 +2,12 @@ find_package(TensorflowCC REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(Boost COMPONENTS system REQUIRED)
 find_package(CUDA)
-find_package(OpenCV COMPONENTS highgui REQUIRED)
+#find_package(OpenCV COMPONENTS highgui REQUIRED)
 
 set(PROTO_FILE AnalyzedResults.proto)
 protobuf_generate_cpp(PROTO_SRC PROTO_HDR ${PROTO_FILE})
 file (GLOB_RECURSE HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+list(APPEND HEADERS LePi/app/LePiClient/LePiClient.hpp)
 set(SOURCES src/human_pose.cpp
             src/human_pose_estimator.cpp
             src/peak.cpp
@@ -25,7 +26,11 @@ set(SOURCES src/human_pose.cpp
             utility_string.cpp
             utility_csv.cpp
             8_openvino.cpp
-            ${PROTO_SRC})
+            ${PROTO_SRC}
+            LePi/app/LePiClient/LePiClient.cpp)
+
+#add LePi to this project
+add_subdirectory(LePi)
 
 ie_add_sample(NAME 8_openvino
               SOURCES ${SOURCES}
@@ -36,19 +41,9 @@ ie_add_sample(NAME 8_openvino
 #enable debug information
 set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")   
 
-include_directories(${PROTOBUF_INCLUDE_DIRS})
 get_filename_component(PROTO_HDR_DIRECTORY ${PROTO_HDR} DIRECTORY)
-include_directories(${PROTO_HDR_DIRECTORY})
-#include_directories(OpenCV_INCLUDE_DIR)
-
-link_directories(${LIB_FOLDER} /usr/local/lib)
-
-set_target_properties(${TARGET_NAME} PROPERTIES "CMAKE_CXX_FLAGS" "${CMAKE_CXX_FLAGS}")
-#  COMPILE_PDB_NAME ${TARGET_NAME})
-
-#target_include_directories(${TARGET_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
-
-target_link_libraries(${IE_SAMPLE_NAME} gflags cnpy TensorflowCC::Shared ${PROTOBUF_LIBRARIES} ${Boost_SYSTEM_LIBRARY})
+include_directories(${PROTO_HDR_DIRECTORY} ${PROTOBUF_INCLUDE_DIRS} LePi/lib/utils/include)
+target_link_libraries(${IE_SAMPLE_NAME} cnpy TensorflowCC::Shared ${PROTOBUF_LIBRARIES} ${Boost_SYSTEM_LIBRARY} ${utils_LIBRARY})
 
 if(CUDA_FOUND)
   target_link_libraries(${IE_SAMPLE_NAME} ${CUDA_LIBRARIES})

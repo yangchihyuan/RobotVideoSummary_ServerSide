@@ -21,6 +21,7 @@
 #include "utility_directory.hpp"
 #include "utility_string.hpp"
 #include "utility_csv.hpp"
+#include "LePi/app/LePiClient/LePiClient.hpp"
 
 using namespace InferenceEngine;
 
@@ -74,12 +75,14 @@ int main(int argc, char* argv[]) {
                 FLAGS_subject_name,
                 FLAGS_enable_reid
             );
+            std::thread thread_LePiClient(LePiClient, FLAGS_flir_server_ip);            
     //        std::thread thread_save_buffer_as_JPEG(process_save_frame_buffer_as_JPEG_images, FLAGS_SaveTransmittedImage, FLAGS_save_to_directory);
 
             thread_receive_frame.join();
             thread_report_results.join();
             thread_image_process.join();
 //        thread_save_buffer_as_JPEG.join();
+            thread_LePiClient.join();
         }
         else if(FLAGS_mode.compare("render_poses_crop_regions") == 0)
         {

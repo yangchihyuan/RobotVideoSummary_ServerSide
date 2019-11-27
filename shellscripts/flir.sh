@@ -7,5 +7,5 @@
 --mode=server_side_program \
 --subject_name=chihyuan \
 --graph_path=/home/yangchihyuan/pose-tensorflow-cpp/PSN.pb \
---enable_reid=false
---flir_server_ip=192.168.0.103
+--enable_reid=false \
+--flir_server_ip=192.168.0.102

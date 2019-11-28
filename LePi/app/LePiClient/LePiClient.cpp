@@ -46,6 +46,9 @@
 // User defines
 #define DPRINTF //printf
 
+// Set as a global variable
+cv::Mat image_flip;
+
 
 /**
  * Sample Client app for streaming video over the local network (TCP)
@@ -72,7 +75,6 @@ int LePiClient(const std::string kIPAddress) {
 
     // Stream data
     cv::Mat ir_img;
-    cv::Mat image_flip;
     bool force_exit{false};
     while (!force_exit) {
 
@@ -119,12 +121,12 @@ int LePiClient(const std::string kIPAddress) {
 
         //flip
         cv::flip(ir_img,image_flip,-1);
-        imshow("IR Img", image_flip);
+//        imshow("IR Img", image_flip);
 //        int key = cvWaitKey(5);
-        int key = cv::waitKey(5);
-        if (key == 27) { // Press ESC to exit
-            break;
-        }
+//        int key = cv::waitKey(5);
+//        if (key == 27) { // Press ESC to exit
+//            break;
+//        }
 
     }
 

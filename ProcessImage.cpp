@@ -30,6 +30,7 @@ extern std::mutex gMutex;
 extern std::mutex gMutex_save_JPEG;
 extern std::mutex gMutex_send_results;
 extern char str_results[122880];
+extern Mat image_flip;
 
 std::string save_to_directory;
 
@@ -190,7 +191,17 @@ void process_image(std::string pose_model,
                 if( bShowRenderedImage )
                 {
                     renderHumanPose(poses, displayImage);
-                    imshow("opencv result", displayImage);
+
+                    //blend displayImage and image_flip
+                    Mat image_large;
+                    resize(image_flip, image_large, Size(640,480),0,0);
+                    Mat image_rgb;
+                    cvtColor(image_large, image_rgb, COLOR_GRAY2BGR);
+                    //blend them
+                    Mat image_blend;
+                    addWeighted(displayImage, 0.5, image_rgb, 0.5, 0, image_blend);
+                    //imshow("opencv result", displayImage);
+                    imshow("opencv result", image_blend);
                     waitKey(1);
                 }
 

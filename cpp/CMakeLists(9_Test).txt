@@ -1,0 +1,32 @@
+#set(PROTO_FILE AnalyzedResults.proto)
+#protobuf_generate_cpp(PROTO_SRC PROTO_HDR ${PROTO_FILE})
+
+file (GLOB_RECURSE HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+set(SOURCES 9_Test.cpp)
+
+add_demo(NAME 9_Test
+              SOURCES ${SOURCES}
+              HEADERS ${HEADERS}
+              INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}/include"
+              OPENCV_DEPENDENCIES highgui)
+              
+#enable debug information
+#set( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")   
+
+#include_directories(${PROTOBUF_INCLUDE_DIRS})
+#get_filename_component(PROTO_HDR_DIRECTORY ${PROTO_HDR} DIRECTORY)
+#include_directories(${PROTO_HDR_DIRECTORY})
+#include_directories(OpenCV_INCLUDE_DIR)
+
+#link_directories(${LIB_FOLDER} /usr/local/lib)
+
+#set_target_properties(${TARGET_NAME} PROPERTIES "CMAKE_CXX_FLAGS" "${CMAKE_CXX_FLAGS}")
+#  COMPILE_PDB_NAME ${TARGET_NAME})
+
+#target_include_directories(${TARGET_NAME} PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>")
+
+#target_link_libraries(${IE_SAMPLE_NAME} gflags)
+
+#if(UNIX)
+#  target_link_libraries(${IE_SAMPLE_NAME} ${LIB_DL} pthread)
+#endif()              

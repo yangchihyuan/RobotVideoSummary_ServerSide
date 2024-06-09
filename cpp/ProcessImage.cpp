@@ -1,14 +1,13 @@
 #include <fstream>
 #include <mutex>
 #include <thread>
-#include "include/human_pose_estimator.hpp"
-#include "include/render_human_pose.hpp"
+//#include "include/human_pose_estimator.hpp"
+//#include "include/render_human_pose.hpp"
 
 #include "ProcessImage.hpp"
-#include <vector>
 #include <numeric>      // std::iota
 #include "JPEG.hpp"
-#include "AnalyzedResults.pb.h"
+//#include "AnalyzedResults.pb.h"
 #include <gflags/gflags.h>
 #include "Logger.hpp"
 #include "utility_TimeRecorder.hpp"
@@ -84,11 +83,14 @@ string ConvertPoseToString(HumanPose pose)
 void process_image(std::string pose_model, 
     bool bShowRenderedImage, 
     bool bSaveTransmittedImage, 
-    string save_to_directory, 
-    PSE id_feature_generator,
-    string subject_name,
-    bool b_enable_reid)
+    string save_to_directory//, 
+//    PSE id_feature_generator,
+//    string subject_name,
+//    bool b_enable_reid
+)
 {
+    //2024/6/8 The HumanPoseEstimator no longer works
+    /*
     HumanPoseEstimator estimator(pose_model, "CPU", false ); //the 3rd argument is per-layer performance report
     unique_ptr<Session> psession;
     ReID reid(100);
@@ -104,10 +106,10 @@ void process_image(std::string pose_model,
         vector<array<float,1536>> features = read_features(features_directory + "/" + subject_name + ".csv");
         reid.LoadSampleFeature(features);
     }
+    */
     string raw_images_directory = save_to_directory + "/raw_images";
     if(bSaveTransmittedImage)
         CreateDirectory(raw_images_directory);
-
 
     while(true)
     {
@@ -128,8 +130,9 @@ void process_image(std::string pose_model,
             catch( exception &e){
             }
  
-            ImageAnalyzedResults::ReportData report_data;
-            report_data.set_key(data_, key_length);
+            //2024/6/8 Why do I need this?
+            //ImageAnalyzedResults::ReportData report_data;
+            //report_data.set_key(data_, key_length);
             vector<char> JPEG_Data(data_ + key_info.length() + str_JPEG_length.length() + 2, data_ + length -1);
             bool bCorrectlyDecoded = false;
             Mat inputImage;
@@ -151,7 +154,7 @@ void process_image(std::string pose_model,
                 }
 
                 Mat displayImage = inputImage.clone();
-                vector<HumanPose> poses = estimator.estimate(inputImage );
+/*                vector<HumanPose> poses = estimator.estimate(inputImage );
                 if( b_enable_reid)
                 {
                     vector<PoseRegion> regions = CropRegionsFromPoses(inputImage, poses);
@@ -193,7 +196,7 @@ void process_image(std::string pose_model,
                     imshow("opencv result", displayImage);
                     waitKey(1);
                 }
-
+*/
                 status_frame_buffer1 = 0;
                 gMutex_send_results.unlock();
             }
@@ -340,7 +343,7 @@ void render_poses_crop_regions(string pose_model,
     string save_to_directory, 
     vector<string> file_list)
 {
-    HumanPoseEstimator estimator(pose_model, "CPU", false ); //the 3rd argument is per-layer performance report
+//    HumanPoseEstimator estimator(pose_model, "CPU", false ); //the 3rd argument is per-layer performance report
 //    string regions_directory = save_to_directory + "/regions";
 //    CreateDirectory(regions_directory);
     string raw_images_directory = save_to_directory + "/raw_images";
@@ -360,12 +363,12 @@ void render_poses_crop_regions(string pose_model,
 
         Mat displayImage = inputImage.clone();
 
-        vector<HumanPose> poses = estimator.estimate(inputImage);
-
+//        vector<HumanPose> poses = estimator.estimate(inputImage);
+        vector<HumanPose> poses;
         if( poses.size() > 0 )
         {
             string rawfilename = RemoveFileExtension(filename);
-            renderHumanPose(poses, displayImage);
+            //renderHumanPose(poses, displayImage);
             for( unsigned int pose_idx = 0 ; pose_idx < poses.size(); pose_idx++ )
             {
 //                string temp = ConvertPoseToString(poses[pose_idx]);
@@ -399,11 +402,13 @@ void render_poses_crop_regions(string pose_model,
     outfile.close();
 }
 
+/*
 void dump_example_features(string pose_model, 
-    string save_to_directory, 
-    PSE id_feature_generator,
-    vector<string> filelist_example,
-    string subject_name)
+    string save_to_directory//, 
+//    PSE id_feature_generator,
+//    vector<string> filelist_example,
+//    string subject_name
+)
 {
     HumanPoseEstimator estimator(pose_model, "CPU", false); //the 3rd argument is per-layer performance report
     unique_ptr<Session> psession;
@@ -430,14 +435,17 @@ void dump_example_features(string pose_model,
     }
     reid.DumpSamples(features_directory + "/" + subject_name + ".csv");
 }
+*/
 
+/*
 void process_image_offline(string pose_model, 
     bool bShowRenderedImage, 
     bool bSaveTransmittedImage, 
-    string save_to_directory, 
-    PSE id_feature_generator,
-    vector<string> file_list,
-    string subject_name)
+    string save_to_directory//, 
+    //PSE id_feature_generator,
+    //vector<string> file_list,
+    //string subject_name
+    )
 {
     HumanPoseEstimator estimator(pose_model, "CPU", false); //the 3rd argument is per-layer performance report
     unique_ptr<Session> psession;
@@ -488,8 +496,9 @@ void process_image_offline(string pose_model,
         }
     }
 }
+*/
 
-
+/*
 void convert_regions_to_features(string pose_model, 
     bool bShowRenderedImage, 
     bool bSaveTransmittedImage, 
@@ -530,3 +539,4 @@ void convert_regions_to_features(string pose_model,
     }
     SampleCollector.DumpSamples(output_directory + "/SamplesFeatures.csv");
 }
+*/

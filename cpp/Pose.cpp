@@ -1,14 +1,15 @@
-#include "human_pose_estimator.hpp"
+//#include "human_pose_estimator.hpp"
 
 #include "Pose.hpp"
+#include "include/human_pose_estimator.hpp"
 #include <vector>
-#include "cnpy.h" //for save numpy array
+//#include "cnpy.h" //for save numpy array
 #include <cmath>
-#include "Tensor.hpp"
+//#include "Tensor.hpp"
 #include <limits>
 #include "Logger.hpp"
-#include "TensorMatConversion.hpp"
-#include "utility_compute.hpp"
+//#include "TensorMatConversion.hpp"
+//#include "utility_compute.hpp"
 
 using namespace human_pose_estimation;
 using namespace cv;
@@ -87,6 +88,7 @@ int ConvertImageToPoses(const Mat& input_image, const string& pose_model, vector
     return 1;
 }
 
+/*
 int ConvertPoseToTensor(const HumanPose& pose, tensorflow::Tensor &tensor)
 {
     vector<int> shape = get_tensor_shape(tensor);
@@ -127,6 +129,7 @@ int ConvertPoseToTensor(const HumanPose& pose, tensorflow::Tensor &tensor)
     }
     return 1;
 }
+*/
 
 vector<PoseRegion> CropRegionsFromPoses(const Mat& inputImage, const vector<HumanPose>& poses)
 {
@@ -280,7 +283,7 @@ vector<HumanPose> SortPosesByHeight(const vector<HumanPose>& poses)
     return result;
 }
 
-
+/*
 vector<array<float, 1536>> ConvertPoseRegionsToReIDFeatures(
     const vector<PoseRegion>& pairs, 
     PSE& id_feature_generator,
@@ -305,3 +308,4 @@ vector<array<float, 1536>> ConvertPoseRegionsToReIDFeatures(
     }
     return return_vector;
 }
+*/

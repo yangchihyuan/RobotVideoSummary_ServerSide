@@ -1,19 +1,21 @@
 // Copyright (C) 2018-2019 Intel Corporation
 // SPDX-License-Identifier: Apache-2.0
 //
+//2024/6/8 This file no longer work in open_model_zoo 2024 because there is no InferenceEngine namespace.
 
 #pragma once
 
 #include <string>
 #include <vector>
 
-#include <inference_engine.hpp>
+//#include <inference_engine.hpp>    //This is the 2018-2019 demo file. The file inference_engine.hpp no longer exist in open_model_zoo 2024.
 #include <opencv2/core/core.hpp>
 
 #include "human_pose.hpp"
 
 namespace human_pose_estimation {
-class HumanPoseEstimator {
+class HumanPoseEstimator {       //2024/6/8 This class seems out-of-dated. If I want to use open_model_zoo 2024, I need to update the class.
+//The new class is either HPEOpenPose or HpeAssociativeEmbedding.
 public:
     static const size_t keypointsNumber;
 
@@ -48,7 +50,7 @@ private:
     float minSubsetScore;
     cv::Size inputLayerSize;
     int upsampleRatio;
-    InferenceEngine::Core ie;
+    InferenceEngine::Core ie;  //2024/6/8 Here is a problem. We no longer have the InferenceEngine namespace in open_model_zoo 2024.
     std::string targetDeviceName;
     InferenceEngine::CNNNetwork network;
     InferenceEngine::ExecutableNetwork executableNetwork;

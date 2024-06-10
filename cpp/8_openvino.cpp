@@ -1,4 +1,8 @@
-// Chih-Yuan Yang 2024
+/* Chih-Yuan Yang 2024
+This is the main function, which launchs three threads. One receives frames from Zenbo.
+The second sends control signal back to Zenbo.
+The third processes images.
+*/
 
 #include <vector>
 #include <thread>       //without this, std::thread is unknown
@@ -26,7 +30,7 @@ int main(int argc, char* argv[]) {
         //std::cout << "InferenceEngine: " << GetInferenceEngineVersion() << std::endl;
 
         // ------------------------------ Parsing and validation of input args ---------------------------------
-        if (!ParseAndCheckCommandLine(argc, argv)) {
+        if (!ParseAndCheckCommandLine(argc, argv)) {   
             return EXIT_SUCCESS;
         }
 
@@ -36,8 +40,9 @@ int main(int argc, char* argv[]) {
         //PSE id_feature_generator(FLAGS_graph_path);  //2024/6/8 Pose-Sensitive Embedding
         //vector<string> filelist_example = LoadFileList(FLAGS_filelist_example);
 
-        if(FLAGS_mode.compare("offline_test") == 0 )
-        {
+//I disable FLAGS_mode. Thus, I cannot use FLAGS_mode here.
+//        if(FLAGS_mode.compare("offline_test") == 0 )
+//        {
 /*            
             vector<string> filename_vector = LoadFileList(FLAGS_filelist_path);
             process_image_offline( 
@@ -50,9 +55,9 @@ int main(int argc, char* argv[]) {
             //    FLAGS_subject_name
             );
 */
-        }
-        else if(FLAGS_mode.compare("server_side_program") == 0 )
-        {
+//        }
+//        else if(FLAGS_mode.compare("server_side_program") == 0 )
+//        {
             std::thread thread_receive_frame(receive_socket, FLAGS_port_number);
             std::thread thread_report_results(report_results, FLAGS_port_number+1);     //another thread to send back results.
             std::thread thread_image_process(process_image, 
@@ -70,14 +75,14 @@ int main(int argc, char* argv[]) {
             thread_report_results.join();
             thread_image_process.join();
 //        thread_save_buffer_as_JPEG.join();
-        }
-        else if(FLAGS_mode.compare("render_poses_crop_regions") == 0)
-        {
-            vector<string> filename_vector = LoadFileList(FLAGS_filelist_path);
-            render_poses_crop_regions(FLAGS_pose_model, 
-                FLAGS_save_to_directory, 
-                filename_vector);
-        }
+//        }
+//        else if(FLAGS_mode.compare("render_poses_crop_regions") == 0)
+//        {
+//            vector<string> filename_vector = LoadFileList(FLAGS_filelist_path);
+//            render_poses_crop_regions(FLAGS_pose_model, 
+//                FLAGS_save_to_directory, 
+//                filename_vector);
+//        }
 /*        else if(FLAGS_mode.compare("dump_example_features") == 0)
         {
             dump_example_features( 

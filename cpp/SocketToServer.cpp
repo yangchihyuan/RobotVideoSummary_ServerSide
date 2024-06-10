@@ -1,4 +1,4 @@
-#include <SocketToServer.hpp>
+#include "SocketToServer.hpp"
 #include <mutex>
 
 char read_buffer[1024];
@@ -9,8 +9,7 @@ int expected_frame_length = 0;
 
 char *frame_buffer1 = NULL;
 char *frame_buffer2 = NULL;
-char *frame_buffer3 = NULL;
-int status_frame_buffer1 = 0;
+int status_frame_buffer1 = 0;    //Chih-Yuan Yang: The variable is used to let the image process thread start to work.
 int status_frame_buffer2 = 0;
 int frame_buffer1_length = 0;
 int frame_buffer2_length = 0;
@@ -38,6 +37,7 @@ class session
             [this, self](boost::system::error_code ec, std::size_t length) {
                 if( !ec)
                 {
+                    //Chih-Yuan Yang: Why do I have the "Begin:" string? Is it sent by the Zenbo robot?
                     if( strncmp(read_buffer, "Begin:", 6 ) == 0 )
                     {
                         buffer_length = 0;
@@ -222,11 +222,11 @@ class session
     tcp::socket socket_;
 };
 
+//This is the funciton to be called in a thread.
 void receive_socket(short port_number)
 {
     frame_buffer1 = new char[100000];
     frame_buffer2 = new char[100000];
-    frame_buffer3 = new char[100000];
 
     try
     {
@@ -241,8 +241,6 @@ void receive_socket(short port_number)
 
     free(frame_buffer1);
     free(frame_buffer2);
-    free(frame_buffer3);
-
 }
 
 server::server(boost::asio::io_service &io_service, short port_number)
@@ -347,6 +345,7 @@ class server_report_results
     short port_number;
 };
 
+//Chih-Yuan Yang: The function is used by a thread to send messages back to the Zenbo robot.
 void report_results(short port_number)
 {
     //initialize str_results

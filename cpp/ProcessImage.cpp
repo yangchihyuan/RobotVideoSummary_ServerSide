@@ -7,16 +7,13 @@
 #include "ProcessImage.hpp"
 #include <numeric>      // std::iota
 #include "JPEG.hpp"
-//#include "AnalyzedResults.pb.h"
-#include <gflags/gflags.h>
-#include "Logger.hpp"
+#include <gflags/gflags.h>   //Why do I need gflags here?
 #include "utility_TimeRecorder.hpp"
-#include "ReID.hpp"
 #include "utility_directory.hpp"
 #include "utility_string.hpp"
 #include "utility_csv.hpp"
 
-using namespace human_pose_estimation;
+//using namespace human_pose_estimation;  //Chih-Yuan Yang: Do I still use the human_pose_estimation namespace?
 using namespace cv;
 
 extern int status_frame_buffer1;
@@ -79,15 +76,11 @@ string ConvertPoseToString(HumanPose pose)
     return temp;
 }
 
-
+//Chih-Yuan Yang: This is the function used by a thread.
 void process_image(std::string pose_model, 
     bool bShowRenderedImage, 
     bool bSaveTransmittedImage, 
-    string save_to_directory//, 
-//    PSE id_feature_generator,
-//    string subject_name,
-//    bool b_enable_reid
-)
+    string save_to_directory)
 {
     //2024/6/8 The HumanPoseEstimator no longer works
     /*
@@ -137,6 +130,9 @@ void process_image(std::string pose_model,
             bool bCorrectlyDecoded = false;
             Mat inputImage;
             try{
+                //Chih-Yuan Yang: imdecode is an OpenCV function. Because I use using namespace cv, the linker
+                //find the imdecode() function and the IMREAD_COLOR tag.
+                
                 inputImage = imdecode(JPEG_Data, IMREAD_COLOR); //check this result. The image may be corrupt.
                 if( inputImage.data )
                     bCorrectlyDecoded = true;

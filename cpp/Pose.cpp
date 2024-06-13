@@ -1,19 +1,20 @@
 //#include "human_pose_estimator.hpp"
 
 #include "Pose.hpp"
-#include "include/human_pose_estimator.hpp"
+//#include "include/human_pose_estimator.hpp"
 #include <vector>
 //#include "cnpy.h" //for save numpy array
 #include <cmath>
 //#include "Tensor.hpp"
-#include <limits>
+#include <limits>   //Chih-Yuan Yang: What is this?
 #include "Logger.hpp"
 //#include "TensorMatConversion.hpp"
-//#include "utility_compute.hpp"
+#include "utility_compute.hpp"
 
-using namespace human_pose_estimation;
+//using namespace human_pose_estimation;
 using namespace cv;
 
+/*
 int ConvertImageToPoseMaps(const string& input_dir, 
                            const vector<string>& file_list, 
                            const string& output_dir, 
@@ -80,13 +81,17 @@ int ConvertImageToPoseMaps(const string& input_dir,
     }
     return 1;
 }
+*/
 
+
+/*
 int ConvertImageToPoses(const Mat& input_image, const string& pose_model, vector<HumanPose>& poses )
 {
     HumanPoseEstimator estimator(pose_model, "CPU", false); //the 3rd argument is per-layer performance report
     poses = estimator.estimate(input_image);
     return 1;
 }
+*/
 
 /*
 int ConvertPoseToTensor(const HumanPose& pose, tensorflow::Tensor &tensor)
@@ -131,6 +136,7 @@ int ConvertPoseToTensor(const HumanPose& pose, tensorflow::Tensor &tensor)
 }
 */
 
+/*
 vector<PoseRegion> CropRegionsFromPoses(const Mat& inputImage, const vector<HumanPose>& poses)
 {
     vector<PoseRegion> return_vector;
@@ -180,7 +186,7 @@ vector<PoseRegion> CropRegionsFromPoses(const Mat& inputImage, const vector<Huma
     }
     return return_vector;
 }
-
+*/
 Rect GetPoseRegion(const HumanPose& pose)
 {
     float top, bottom, right, left;
@@ -246,6 +252,7 @@ vector<int> SortPosesByNeckToNose(const vector<HumanPose>& poses)
     }
 
     //get sorted indexes, the larger distance, the smaller the index
+    //Chih-Yuan Yang: This is my own function in the utiliti_compute.cpp
     return SortIndex(distances, true);
 /*    
     vector<int> index_vector(distances.size(), 0);

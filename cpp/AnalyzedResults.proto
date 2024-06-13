@@ -1,0 +1,25 @@
+syntax = "proto2";
+
+package ImageAnalyzedResults;
+
+message ReportData {
+  required string key = 1;
+
+  optional int32 openpose_cnt = 2;
+  repeated string openpose_coord = 3;
+  
+  optional int32 yolo_cnt_person = 4;
+  repeated string yolo_coord_person = 5;
+
+  repeated string charades_webcam = 6;
+
+  optional int32 yolo_cnt_tvmonitor = 7;
+  repeated string yolo_coord_tvmonitor = 8;
+
+  optional int32 tracker_roi_x = 9;
+  optional int32 tracker_roi_y = 10;
+  optional int32 tracker_roi_width = 11;
+  optional int32 tracker_roi_height = 12;
+  optional int32 roi_rectangle_color = 13;
+}
+

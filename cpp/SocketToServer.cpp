@@ -280,7 +280,7 @@ class session_report_result
     {
         do_write();
     }
-    bool bVerbose = true;
+    bool bVerbose = true;  //If I set this variable true, my terminal will repeatly show the str_results.
 
   private:
     void do_write()

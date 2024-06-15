@@ -5,6 +5,8 @@ This project is modified from Intel OpenVINO's Open Model Zoo 2024 demo project 
 - Intel OpenVINO toolkit 2024.1.0
 - libboost-dev 1.74.0.3ubuntu7
 - libprotobuf-dev 3.12.4-1ubuntu7.22.04.1
+- libopencv-dev 4.5.4+dfsg-9ubuntu4
+- libgflags-dev 2.2.2-2
 
 # Library Setting
 Please follow Intel OpenVINO 2024.1.0's instruction to install the library.

@@ -1,5 +1,5 @@
 find_package(Protobuf REQUIRED)
-find_package(Boost COMPONENTS system REQUIRED)
+find_package(Boost COMPONENTS REQUIRED)
 find_package(OpenCV COMPONENTS highgui REQUIRED)
 
 set(PROTO_FILE AnalyzedResults.proto)

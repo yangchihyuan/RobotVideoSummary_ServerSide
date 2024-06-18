@@ -8,24 +8,35 @@ This project is modified from Intel OpenVINO's Open Model Zoo 2024 demo project 
 - libopencv-dev 4.5.4+dfsg-9ubuntu4
 - libgflags-dev 2.2.2-2
 
-# Library Setting
-Please follow Intel OpenVINO 2024.1.0's instruction to install the library.
-We need Intel OpenVINO Toolkit Open Model Zoo as a framework. Please git clone it from its GitHub repository and download its human pose pre-trained model human-pose-estimation-0001.xml and its bin file.
+# OpenVINO Setting
+Please follow Intel OpenVINO 2024.1.0's [instruction](https://docs.openvino.ai/2024/index.html) to install the library. OpenVINO 2024.1.0 does not support Ubuntu 24.04, which is the reason I use Ubuntu 22.04.
+We need Intel OpenVINO Toolkit Open Model Zoo as a framework. i git clone it from its GitHub repository.
+```
+cd ~
+git clone https://github.com/openvinotoolkit/open_model_zoo.git
+```
+We need a pretrained model human-pose-estimation-0001.xml used in the human_pose_estimation_demo, which is a part of the OpenPose algorithm.
+```
+python3 ~/open_model_zoo/tools/model_tools/src/omz_tools/omz_downloader.py --list ~/open_model_zoo/demos/human_pose_estimation_demo/cpp/models.lst -o ~/open_model_zoo/models
+```
 
 # Installation
-Suppose your Open Model Zoo is installed in ~/Downloads/open_model_zoo, and the demo projects are in the directory ~/Downloads/open_model_zoo/demos.
-Please git clone my repository into the demos directory.
+Suppose your Open Model Zoo is installed in ~/open_model_zoo.
+Please git clone this repository into the demos directory.
 ```
-cd ~/Downloads/open_model_zoo/demos
+cd ~/open_model_zoo/demos
 git clone https://github.com/yangchihyuan/RobotVideoSummary_ServerSide.git
 ```
-- run the OpenVINO's build_demos.sh at ~/Downloads/open_model_zoo/demos to build this project, and an executable file 8_openvino should be built at ~/omz_demos_build/intel64/Release/
-- set the permissions as executable for the run_server_side_program.sh in the RobotVideoSummary_ServerSide directory
+
+# Compile
+Run the OpenVINO's build_demos.sh in ~/open_model_zoo/demos to build this project, and an executable file 8_openvino should be created at ~/omz_demos_build/intel64/Release/
+Set the permissions as executable for the run_server_side_program.sh in the RobotVideoSummary_ServerSide directory.
 ```
+cd ~/open_model_zoo/demos/RobotVideoSummary_ServerSide/cpp
 chmod +x run_server_side_program.sh
 ```
-- run the shell script
+Run the shell script.
 ```
 ./run_server_side_program.sh
 ```
-- To terminate this program, press Ctrl+C
+To terminate this program, press Ctrl+C

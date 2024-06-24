@@ -209,6 +209,9 @@ class session
                         }
                     }
 
+                    //2024/6/24 Chih-Yuan Yang: Here is the differece between the two sockets.
+                    //For the receiving socket, it often disconnects and re-connects to prevent the
+                    //discupt
                     if( !bJPEG_data_corrupt)
                         do_read();
                 }
